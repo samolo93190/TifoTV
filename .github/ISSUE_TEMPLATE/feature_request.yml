@@ -12,7 +12,7 @@ body:
         both boxes are mandatory.
       options:
         - label: >
-            I read the **[User Guide](https://github.com/ahXN00/OwnTV/blob/main/extras/USER_GUIDE.md)**
+            I read the **[User Guide](https://github.com/samolo93190/TifoTV/blob/main/extras/USER_GUIDE.md)**
             and checked the app's **Settings** and existing **functions** — this isn't already possible.
           required: true
         - label: I searched existing issues and this isn't already requested.
