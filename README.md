@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: light)" srcset="extras/brand/app-logos/logo_eggshell_light.png">
-    <img src="extras/brand/app-logos/logo_eggshell.png" alt="OwnTV" width="360">
-  </picture>
+  <img src="extras/brand/tifotv_logo.png" alt="TifoTV" width="360">
 </p>
 
 <p align="center">
