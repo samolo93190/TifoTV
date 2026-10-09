@@ -27,14 +27,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # A "Pin core x.y.z" pull request opened by core's bump-consumers workflow changes exactly two
-  # files and no application code. Running the unit tests, lint and the i18n checks on it re-verifies
+  # A "Pin core x.y.z" pull request (branch bump/core-x.y.z) changes exactly two files and no
+  # application code. In TifoTV these are opened by hand: upstream's core repository does not open
+  # them here, and nothing merges them automatically. Running the unit tests, lint and the i18n checks on it re-verifies
   # this repo's Kotlin, which is byte-identical to main — minutes of runner time that cannot report
   # anything new. So those jobs step aside for these branches and this one runs instead.
-  #
-  # It also keeps the workflow run itself concluding "success". A run whose every job is skipped
-  # concludes as "skipped", and automerge-core-bump.yml requires success — skip everything and the
-  # pull request would sit open for ever.
   #
   # What is actually worth checking on such a pull request is that the numbers agree: seconds, no
   # build, no Gradle, no Android SDK.
