@@ -48,7 +48,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "tv.own.owntv"
+        // TifoTV: its own package, so it installs next to OwnTV. The namespace (R, code) stays OwnTV's.
+        applicationId = "tv.own.tifotv"
         minSdk = 26
         targetSdk = 36
         // CI injects these from the git tag (see .github/workflows/android.yml) so releases never
