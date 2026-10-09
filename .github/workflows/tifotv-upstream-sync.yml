@@ -1,0 +1,72 @@
+name: Sync OwnTV releases
+
+# TifoTV is OwnTV plus a Sports section. This follows upstream's release tags (vX.Y.Z), not its
+# main branch: upstream main often uses core strings and APIs before core publishes them, so it
+# does not compile against any published core. A release tag always does.
+#
+# When ahXN00/OwnTV has a release tag that main doesn't contain yet, this merges it into the
+# sync/owntv branch, opens (or refreshes) a pull request to main and runs Android CI on it.
+# A merge conflict opens an issue instead, since that one needs a human.
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: tifotv-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UPSTREAM: https://github.com/ahXN00/OwnTV.git
+      BRANCH: sync/owntv
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge the newest OwnTV release
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TAG=$(git ls-remote --tags --refs "$UPSTREAM" 'v*' | awk -F/ '{print $3}' | sort -V | tail -1)
+          [ -n "$TAG" ] || { echo "::error::No release tag found upstream."; exit 1; }
+          git fetch --no-tags "$UPSTREAM" "refs/tags/$TAG:refs/tags/owntv-$TAG"
+
+          if git merge-base --is-ancestor "owntv-$TAG" HEAD; then
+            echo "main already contains OwnTV $TAG."
+            exit 0
+          fi
+
+          git checkout -B "$BRANCH"
+          if ! git merge --no-ff --no-edit -m "Merge OwnTV $TAG" "owntv-$TAG"; then
+            git merge --abort
+            TITLE="Merging OwnTV $TAG needs a hand"
+            if [ -z "$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[].number')" ]; then
+              gh issue create --title "$TITLE" --body "Merging upstream OwnTV \`$TAG\` into main conflicts. Merge it by hand: \`git fetch $UPSTREAM tag $TAG && git merge $TAG\`."
+            fi
+            exit 0
+          fi
+
+          git push --force origin "$BRANCH"
+          BODY="Merges upstream OwnTV [\`$TAG\`](https://github.com/ahXN00/OwnTV/releases/tag/$TAG) into TifoTV. Android CI runs on this branch; merge once it is green."
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --title "Merge OwnTV $TAG" --body "$BODY"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Merge OwnTV $TAG" --body "$BODY"
+          fi
+          # Pull requests opened with GITHUB_TOKEN don't start other workflows; a dispatch does.
+          gh workflow run android.yml --ref "$BRANCH"
