@@ -17,7 +17,7 @@ body:
         these — issues opened without them are usually closed. The last three boxes are mandatory.
       options:
         - label: >
-            I read the **[User Guide](https://github.com/ahXN00/OwnTV/blob/main/extras/USER_GUIDE.md)**
+            I read the **[User Guide](https://github.com/samolo93190/TifoTV/blob/main/extras/USER_GUIDE.md)**
             and checked the relevant **Settings** and **in-app functions** for this (e.g. the
             top-bar playlist switcher, per-playlist Default, HDR, Surround, Catch-up time, Video player).
           required: true
