@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TifoTV's own strings, kept out of OwnTV's files so upstream merges never touch them. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="tifo_sports_title">Sports</string>
+    <string name="tifo_sports_all">All</string>
+    <string name="tifo_sports_ligue_1">Ligue 1</string>
+    <string name="tifo_sports_premier_league">Premier League</string>
+    <string name="tifo_sports_laliga">LaLiga</string>
+    <string name="tifo_sports_champions_league">Champions League</string>
+    <string name="tifo_sports_nba">NBA</string>
+    <string name="tifo_sports_nfl">NFL</string>
+    <string name="tifo_sports_formula_1">Formula 1</string>
+    <string name="tifo_sports_atp">ATP Tennis</string>
+    <string name="tifo_sports_live">LIVE</string>
+    <string name="tifo_sports_today">Today</string>
+    <string name="tifo_sports_final">Final</string>
+    <string name="tifo_sports_vs">vs</string>
+    <string name="tifo_sports_score">%1$s – %2$s</string>
+    <string name="tifo_sports_versus">%1$s vs %2$s</string>
+    <string name="tifo_sports_loading">Loading games…</string>
+    <string name="tifo_sports_failed">Couldn\'t load the games. Check the connection and try again in a moment.</string>
+    <string name="tifo_sports_no_games">No games in the next few days.</string>
+    <string name="tifo_sports_pick_game">Pick a game to see which of your channels show it.</string>
+    <string name="tifo_sports_channels">Channels</string>
+    <string name="tifo_sports_matching">Looking for channels…</string>
+    <string name="tifo_sports_no_channels">No channel in your playlist seems to show this game. Check that a TV guide is added.</string>
+    <string name="tifo_sports_programme">%1$s–%2$s · %3$s</string>
+    <string name="tifo_sports_match_best">Best match</string>
+    <string name="tifo_sports_match_likely">Likely</string>
+    <string name="tifo_sports_match_broadcaster">Usual channel</string>
+</resources>

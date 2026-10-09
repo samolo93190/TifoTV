@@ -145,6 +145,8 @@ fun StageRail(
     onFocused: () -> Unit,
     nowPlaying: NowPlayingRail?,
     onNowPlaying: () -> Unit,
+    /** TifoTV: the Sports item, drawn just above More. */
+    sports: tv.own.owntv.tifo.sports.SportsRailItem? = null,
     modifier: Modifier = Modifier,
 ) {
     val open = (state == RailState.OPEN || state == RailState.PINNED) && size != NavSize.COMPACT
@@ -251,16 +253,29 @@ fun StageRail(
                 RailSeparator(open)
             }
             items.forEach { section ->
+                if (section == MainSection.MORE && sports != null) {
+                    RailItem(
+                        icon = OwnTVIcon.LIVE_DOT,
+                        label = stringResource(R.string.tifo_sports_title),
+                        trailing = null,
+                        detail = null,
+                        open = open,
+                        active = sports.active,
+                        onClick = sports.onClick,
+                        modifier = if (sports.active) Modifier.focusRequester(selectedItemFocusRequester) else Modifier,
+                        customIcon = { tint, iconSize -> tv.own.owntv.tifo.sports.SportsGlyph(tint, Modifier.size(iconSize)) },
+                    )
+                }
                 RailItem(
                     icon = section.stageIcon,
                     label = stringResource(section.labelRes),
                     trailing = if (counts) count(section)?.let { NumberFormat.getIntegerInstance(LocalConfiguration.current.locales[0]).format(it) } else null,
                     detail = if (details) detail(section) else null,
                     open = open,
-                    active = section == selected ||
-                        (section == MainSection.MORE && selected == MainSection.SETTINGS),
+                    active = sports?.active != true && (section == selected ||
+                        (section == MainSection.MORE && selected == MainSection.SETTINGS)),
                     onClick = { onSelect(section) },
-                    modifier = if (section == focusSection) Modifier.focusRequester(selectedItemFocusRequester) else Modifier,
+                    modifier = if (section == focusSection && sports?.active != true) Modifier.focusRequester(selectedItemFocusRequester) else Modifier,
                 )
             }
             // Full height: the profile sits at the bottom, after the last separator.
@@ -347,6 +362,7 @@ private fun RailItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     accentIcon: Boolean = false,
+    customIcon: (@Composable (tint: Color, size: androidx.compose.ui.unit.Dp) -> Unit)? = null,
 ) {
     val a = stageAccent
     val r = 20.mpx
@@ -363,7 +379,7 @@ private fun RailItem(
             else -> Color(0xFFC4CFCA)
         }
         if (!open) {
-            OwnTVIcon(icon, iconTint, Modifier.size(27.mpx))
+            if (customIcon != null) customIcon(iconTint, 27.mpx) else OwnTVIcon(icon, iconTint, Modifier.size(27.mpx))
             if (active && !focused) RailActiveDot(Modifier.align(Alignment.CenterEnd).offset(x = 9.mpx))
             return@StageSurface
         }
@@ -372,7 +388,7 @@ private fun RailItem(
             horizontalArrangement = Arrangement.spacedBy(18.mpx),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OwnTVIcon(icon, iconTint, Modifier.size(26.mpx))
+            if (customIcon != null) customIcon(iconTint, 26.mpx) else OwnTVIcon(icon, iconTint, Modifier.size(26.mpx))
             Column(Modifier.weight(1f)) {
                 Text(
                     label,

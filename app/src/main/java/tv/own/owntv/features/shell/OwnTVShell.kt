@@ -846,6 +846,10 @@ fun OwnTVShell(
         if (openedSeries == null && searchReturn == MainSection.SERIES && selectedSection == MainSection.SERIES) returnToSearch()
     }
 
+    // TifoTV: Sports is not a MainSection (see SportsRailItem); any section change closes it.
+    var sportsOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(selectedSection) { sportsOpen = false }
+
     BackHandler {
         when {
             playerMode == PlayerMode.FULLSCREEN -> exitPlayer()
@@ -1040,7 +1044,7 @@ fun OwnTVShell(
               }
           } else null
           // Screens already redrawn for Stage own the whole canvas.
-          val stageScreen = selectedSection in StageSections
+          val stageScreen = sportsOpen || selectedSection in StageSections
           Box(Modifier.weight(1f).fillMaxWidth()) {
           Row(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -1113,6 +1117,12 @@ fun OwnTVShell(
                         .then(if (stageScreen) Modifier else Modifier.padding(end = 6.dp, bottom = 6.dp)),
                 ) {
                     when {
+                        sportsOpen -> tv.own.owntv.tifo.sports.SportsScreen(
+                            onPlayChannel = { ch -> guidePlayChannel(ch, emptyList()) },
+                            contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+
                         // Plan Z — the hub the rail's last item now opens. Settings is a row in it.
                         selectedSection == MainSection.MORE -> tv.own.owntv.features.more.MoreScreen(
                             profileName = profileName.ifBlank { stringResource(R.string.common_own_tv_user) },
@@ -1390,7 +1400,7 @@ fun OwnTVShell(
                 length = navLength,
                 selected = selectedSection,
                 visibleSections = visibleSections,
-                onSelect = selectFromNav,
+                onSelect = { section -> sportsOpen = false; selectFromNav(section) },
                 count = { section -> railCounts[section]?.takeIf { it > 0 } },
                 detail = { section -> railDetail(section, railDetails) },
                 profileName = profileName.ifBlank { stringResource(R.string.common_own_tv_user) },
@@ -1412,6 +1422,7 @@ fun OwnTVShell(
                 onFocused = { focusedLayer = ShellLayer.SIDEBAR },
                 nowPlaying = nowPlayingRail,
                 onNowPlaying = enterNowPlaying,
+                sports = tv.own.owntv.tifo.sports.SportsRailItem(active = sportsOpen, onClick = { sportsOpen = true }),
             )
           }
         }
