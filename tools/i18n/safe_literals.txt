@@ -881,10 +881,11 @@
 1	technical	app/src/main/java/tv/own/owntv/player/RecordingBadge.kt	rec
 1	technical	app/src/main/java/tv/own/owntv/player/RecordingBadge.kt	recPulse
 1	uri	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	&limit=200
-1	uri	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	-
 1	uri	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	/scoreboard
+1	protocol	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	:
 1	uri	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	?dates=
 1	log	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	ESPN ${competition.espnPath} answered ${response.code}
+1	log	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	ESPN ${competition.espnPath}: every day failed
 1	protocol	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	Race
 2	json	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	abbreviation
 1	json	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	broadcasts

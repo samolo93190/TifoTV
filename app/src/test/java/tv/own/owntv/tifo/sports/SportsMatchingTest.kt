@@ -78,4 +78,17 @@ class SportsMatchingTest {
         assertEquals(SportsMatching.EVENT_NAME, SportsMatching.score(event, "Singapore: the race"))
         assertEquals(SportsMatching.COMPETITION_ONLY + 10, SportsMatching.score(event, "F1 : le mag"))
     }
+
+    @Test
+    fun teamScoreboardsAskForOneDayAtATime() {
+        // ESPN rejects "dates=A-B" ranges, so a team league is fetched day by day.
+        assertEquals(
+            "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=20261011&limit=200",
+            EspnScoreboard.urlFor(Competition.LIGUE_1, java.time.LocalDate.of(2026, 10, 11)),
+        )
+        assertEquals(
+            "https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard",
+            EspnScoreboard.urlFor(Competition.FORMULA_1, null),
+        )
+    }
 }

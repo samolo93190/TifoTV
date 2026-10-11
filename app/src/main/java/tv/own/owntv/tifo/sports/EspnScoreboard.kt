@@ -1,10 +1,15 @@
 package tv.own.owntv.tifo.sports
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,9 +22,41 @@ import org.json.JSONObject
  */
 class EspnScoreboard(private val http: OkHttpClient) {
 
+    private class CachedDay(val fetchedAtMs: Long, val events: List<SportsEvent>)
+
+    private val cache = ConcurrentHashMap<String, CachedDay>()
+
+    /**
+     * Team sports: one request per day, yesterday to a week ahead, because ESPN now rejects
+     * date ranges. Yesterday to tomorrow is fetched on every call since those scores move; later
+     * days are kept for [FAR_DAY_TTL_MS]. Races and tournaments: ESPN's current event.
+     */
     suspend fun load(competition: Competition, nowMs: Long): List<SportsEvent> = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url(urlFor(competition, nowMs)).build()
-        http.newCall(request).execute().use { response ->
+        if (competition.kind != SportKind.TEAM) return@withContext fetch(competition, null)
+        val today = Instant.ofEpochMilli(nowMs).atOffset(ZoneOffset.UTC).toLocalDate()
+        val days = (-1L..7L).map { today.plusDays(it) }
+        val results = coroutineScope {
+            days.map { date ->
+                async {
+                    val key = competition.name + ":" + day(date)
+                    val cached = cache[key]
+                    val near = !date.isAfter(today.plusDays(1))
+                    if (cached != null && !near && nowMs - cached.fetchedAtMs < FAR_DAY_TTL_MS) {
+                        return@async cached.events
+                    }
+                    runCatching { fetch(competition, date) }
+                        .onSuccess { cache[key] = CachedDay(nowMs, it) }
+                        .getOrElse { cached?.events }
+                }
+            }.awaitAll()
+        }
+        check(results.any { it != null }) { "ESPN ${competition.espnPath}: every day failed" }
+        results.filterNotNull().flatten().distinctBy { it.id }
+    }
+
+    private fun fetch(competition: Competition, date: LocalDate?): List<SportsEvent> {
+        val request = Request.Builder().url(urlFor(competition, date)).build()
+        return http.newCall(request).execute().use { response ->
             check(response.isSuccessful) { "ESPN ${competition.espnPath} answered ${response.code}" }
             parseScoreboard(competition, response.body.string())
         }
@@ -27,13 +64,11 @@ class EspnScoreboard(private val http: OkHttpClient) {
 
     companion object {
         private const val BASE = "https://site.api.espn.com/apis/site/v2/sports/"
+        private const val FAR_DAY_TTL_MS = 30 * 60_000L
 
-        /** Team sports: yesterday to a week ahead. Races and tournaments: ESPN's current event. */
-        internal fun urlFor(competition: Competition, nowMs: Long): String {
+        internal fun urlFor(competition: Competition, date: LocalDate?): String {
             val url = BASE + competition.espnPath + "/scoreboard"
-            if (competition.kind != SportKind.TEAM) return url
-            val today = java.time.Instant.ofEpochMilli(nowMs).atOffset(ZoneOffset.UTC).toLocalDate()
-            return url + "?dates=" + day(today.minusDays(1)) + "-" + day(today.plusDays(7)) + "&limit=200"
+            return if (date == null) url else url + "?dates=" + day(date) + "&limit=200"
         }
 
         private fun day(date: LocalDate): String = date.format(DateTimeFormatter.BASIC_ISO_DATE)
