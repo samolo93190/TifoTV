@@ -1,0 +1,69 @@
+name: Release TifoTV
+
+# Every change merged into main becomes a release the TV's in-app updater offers. This tags main
+# with the next version (v1.0.0, then v1.0.1, v1.0.2…) and runs Android CI on that tag, which
+# builds the signed APK and publishes the GitHub Release. Run it by hand to pick the version,
+# e.g. 1.1.0 for a bigger change.
+#
+# Android CI is started explicitly because a tag pushed with GITHUB_TOKEN does not trigger
+# other workflows on its own.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, like 1.1.0 (empty = next patch)"
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: tifotv-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REQUESTED: ${{ github.event.inputs.version }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Tag the next version
+        id: tag
+        run: |
+          git fetch --tags --force
+          if git tag --points-at HEAD | grep -q '^v'; then
+            echo "main is already released as $(git tag --points-at HEAD | grep '^v' | head -1)."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$REQUESTED" ]; then
+            NEXT="v${REQUESTED#v}"
+          else
+            LAST=$(git tag --list 'v*' | sort -V | tail -1)
+            if [ -z "$LAST" ]; then
+              NEXT="v1.0.0"
+            else
+              IFS='.' read -r MA MI PA <<< "${LAST#v}"
+              NEXT="v${MA}.${MI}.$(( PA + 1 ))"
+            fi
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEXT" -m "TifoTV $NEXT"
+          git push origin "refs/tags/$NEXT"
+          echo "tag=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Tagged $NEXT."
+
+      - name: Build and publish it
+        if: steps.tag.outputs.tag != ''
+        run: gh workflow run android.yml --repo "$GITHUB_REPOSITORY" --ref "${{ steps.tag.outputs.tag }}"
