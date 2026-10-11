@@ -22,9 +22,9 @@ data class SportsChannelMatch(
 )
 
 /**
- * Finds the active playlist's channels that show an event: first through the guide (a programme at
- * the event's time whose title names the teams or the event), then through the channel names of
- * the competition's usual broadcasters.
+ * Finds the active playlist's channels that show an event: through the guide (a programme at the
+ * event's time whose title names the teams or the event), through channels named after the game
+ * itself ("NFL 03: Bears vs Packers"), then through the competition's usual broadcasters.
  *
  * Reads core's database and never writes to it. The two queries name core's tables and columns
  * directly, since core has no DAO call that searches programme titles.
@@ -42,6 +42,7 @@ class SportsChannelFinder(
 
         val best = HashMap<Long, SportsChannelMatch>()
         fun offer(match: SportsChannelMatch) {
+            if (SportsMatching.isSeparator(match.channel.name)) return
             val old = best[match.channel.id]
             if (old == null || match.score > old.score) best[match.channel.id] = match
         }
@@ -62,7 +63,15 @@ class SportsChannelFinder(
             }
         }
 
-        // 2. The broadcasters' channel names, below anything the guide found.
+        // 2. Channels named after the game, which providers often leave without a guide.
+        for ((channelId, name) in channelsNamed(SportsMatching.channelSearchTerms(event), sourceIds)) {
+            val score = SportsMatching.channelScore(event, name)
+            if (score <= 0) continue
+            val channel = channelDao.getById(channelId) ?: continue
+            offer(SportsChannelMatch(channel, score, null, null, null))
+        }
+
+        // 3. The broadcasters' channel names, below anything the guide found.
         val broadcasterNames = (event.competition.broadcasters + event.broadcasts).distinctBy { it.lowercase() }
         for (name in broadcasterNames) {
             runCatching { channelDao.searchList(name, sourceIds, BROADCASTER_CHANNELS) }.getOrDefault(emptyList())
@@ -117,6 +126,23 @@ class SportsChannelFinder(
         }.getOrDefault(emptyList())
     }
 
+    /** Id and name of the playlist channels whose name holds any of [terms]. */
+    private suspend fun channelsNamed(terms: List<String>, sourceIds: List<Long>): List<Pair<Long, String>> {
+        if (terms.isEmpty()) return emptyList()
+        val sql = "SELECT id, name FROM channels " +
+            "WHERE sourceId IN (" + sourceIds.joinToString(",") { "?" } + ") " +
+            "AND (" + terms.joinToString(" OR ") { "name LIKE ?" } + ") LIMIT $MAX_NAMED_CHANNELS"
+        return runCatching {
+            db.useReaderConnection { connection ->
+                connection.usePrepared(sql) { st ->
+                    sourceIds.forEachIndexed { i, id -> st.bindLong(i + 1, id) }
+                    terms.forEachIndexed { i, term -> st.bindText(sourceIds.size + i + 1, "%" + term + "%") }
+                    buildList { while (st.step()) add(st.getLong(0) to st.getText(1)) }
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
     /** Channel id to guide key, for the playlist channels whose guide id is one of [keys]. */
     private suspend fun channelsForGuideKeys(keys: Set<String>, sourceIds: List<Long>): List<Pair<Long, String>> {
         if (keys.isEmpty()) return emptyList()
@@ -140,6 +166,7 @@ class SportsChannelFinder(
         const val HOUR = 60 * MINUTE
         const val MAX_PROGRAMMES = 400
         const val MAX_RESULTS = 40
+        const val MAX_NAMED_CHANNELS = 400
         const val BROADCASTER_CHANNELS = 8
     }
 }

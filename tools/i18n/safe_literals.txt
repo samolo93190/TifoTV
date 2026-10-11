@@ -913,19 +913,24 @@
 3	json	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	status
 1	json	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	team
 2	json	app/src/main/java/tv/own/owntv/tifo/sports/EspnScoreboard.kt	type
-2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	%
-1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	)
+4	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	%
+2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	)
+1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	) LIMIT $MAX_NAMED_CHANNELS
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	) LIMIT $MAX_RESULTS
-2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	,
-2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	?
+3	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	,
+3	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	?
+1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	AND (
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	AND LOWER(TRIM(epgChannelId)) IN (
-1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	OR
+2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	OR
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	SELECT epgChannelId, title, categories, startMs, stopMs FROM epg_programmes
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	SELECT id, LOWER(TRIM(epgChannelId)) FROM channels
-1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	WHERE sourceId IN (
+1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	SELECT id, name FROM channels
+2	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	WHERE sourceId IN (
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	WHERE startMs <= ? AND stopMs >= ? AND ($likes) LIMIT $MAX_PROGRAMMES
+1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	name LIKE ?
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	title LIKE ?
 2	empty	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	\0
+1	protocol	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	#
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	AC Milan
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	Atletico
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	Atletico de Madrid
