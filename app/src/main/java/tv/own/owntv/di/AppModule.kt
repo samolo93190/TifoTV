@@ -34,6 +34,7 @@ import tv.own.owntv.features.setup.DisplaySizeViewModel
 import tv.own.owntv.features.setup.SetupViewModel
 import tv.own.owntv.features.shell.ShellViewModel
 import tv.own.owntv.features.subtitles.SubtitleSearchViewModel
+import tv.own.owntv.tifo.sports.SportsViewModel
 
 /**
  * Root Koin module. Each feature will contribute its own bindings as the app grows;
@@ -95,6 +96,7 @@ val appModule = module {
     viewModelOf(::MovieViewModel)
     viewModelOf(::SeriesViewModel)
     viewModelOf(::SearchViewModel)
+    viewModelOf(::SportsViewModel)
     viewModelOf(::ProfilesViewModel)
     // Activity-scoped session state for the profile gate (configuration-only retention, no saved
     // state — see ProfileGateSessionViewModel).

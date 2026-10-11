@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tifo_sports_title">Sports</string>
+    <string name="tifo_sports_all">Tout</string>
+    <string name="tifo_sports_ligue_1">Ligue 1</string>
+    <string name="tifo_sports_premier_league">Premier League</string>
+    <string name="tifo_sports_laliga">LaLiga</string>
+    <string name="tifo_sports_champions_league">Ligue des champions</string>
+    <string name="tifo_sports_nba">NBA</string>
+    <string name="tifo_sports_nfl">NFL</string>
+    <string name="tifo_sports_formula_1">Formule 1</string>
+    <string name="tifo_sports_atp">Tennis ATP</string>
+    <string name="tifo_sports_live">EN DIRECT</string>
+    <string name="tifo_sports_today">Aujourd\'hui</string>
+    <string name="tifo_sports_final">Terminé</string>
+    <string name="tifo_sports_vs">vs</string>
+    <string name="tifo_sports_score">%1$s – %2$s</string>
+    <string name="tifo_sports_versus">%1$s vs %2$s</string>
+    <string name="tifo_sports_loading">Chargement des matchs…</string>
+    <string name="tifo_sports_failed">Impossible de charger les matchs. Vérifiez la connexion et réessayez dans un instant.</string>
+    <string name="tifo_sports_no_games">Aucun match dans les prochains jours.</string>
+    <string name="tifo_sports_pick_game">Choisissez un match pour voir quelles chaînes le diffusent.</string>
+    <string name="tifo_sports_channels">Chaînes</string>
+    <string name="tifo_sports_matching">Recherche des chaînes…</string>
+    <string name="tifo_sports_no_channels">Aucune chaîne de votre playlist ne semble diffuser ce match. Vérifiez qu\'un guide TV est ajouté.</string>
+    <string name="tifo_sports_programme">%1$s–%2$s · %3$s</string>
+    <string name="tifo_sports_match_best">Meilleur choix</string>
+    <string name="tifo_sports_match_likely">Probable</string>
+    <string name="tifo_sports_match_broadcaster">Chaîne habituelle</string>
+</resources>
