@@ -91,4 +91,56 @@ class SportsMatchingTest {
             EspnScoreboard.urlFor(Competition.FORMULA_1, null),
         )
     }
+
+    private fun nflTeam(city: String, nickname: String, abbreviation: String) =
+        SportsTeam("$city $nickname", nickname, listOf(nickname, abbreviation), null, null)
+
+    private fun nflGame(home: SportsTeam, away: SportsTeam) = SportsEvent(
+        id = "401", competition = Competition.NFL, name = "${away.name} at ${home.name}",
+        startMs = 0L, state = EventState.UPCOMING, statusDetail = "", home = home, away = away,
+        broadcasts = emptyList(),
+    )
+
+    private val bearsAtPackers = nflGame(nflTeam("Green Bay", "Packers", "GB"), nflTeam("Chicago", "Bears", "CHI"))
+
+    @Test
+    fun eventChannelsNamingBothTeamsRankFirst() {
+        assertEquals(SportsMatching.EVENT_CHANNEL, SportsMatching.channelScore(bearsAtPackers, "NFL 03: Bears vs Packers 1:00 PM ET"))
+        assertEquals(SportsMatching.EVENT_CHANNEL, SportsMatching.channelScore(bearsAtPackers, "USA | NFL: Chicago @ Green Bay"))
+        assertEquals(SportsMatching.EVENT_CHANNEL, SportsMatching.channelScore(bearsAtPackers, "NFL | Bears at Green Bay"))
+        val psgLyonEvent = parseScoreboard(Competition.LIGUE_1, psgLyon).single()
+        assertEquals(SportsMatching.EVENT_CHANNEL, SportsMatching.channelScore(psgLyonEvent, "LIGUE 1 | PSG - Lyon"))
+    }
+
+    @Test
+    fun aCityAloneIsNotATeam() {
+        assertEquals(SportsMatching.TEAM_CHANNEL, SportsMatching.channelScore(bearsAtPackers, "Packers TV"))
+        assertEquals(0, SportsMatching.channelScore(bearsAtPackers, "NBC Sports Chicago"))
+        assertEquals(0, SportsMatching.channelScore(bearsAtPackers, "NFL RedZone"))
+        assertEquals("Green Bay", SportsMatching.city(bearsAtPackers.home!!))
+        // Two teams from one city: the city names neither.
+        val laDerby = nflGame(nflTeam("Los Angeles", "Rams", "LAR"), nflTeam("Los Angeles", "Chargers", "LAC"))
+        assertEquals(0, SportsMatching.channelScore(laDerby, "Los Angeles Sports 4K"))
+        assertEquals(SportsMatching.EVENT_CHANNEL, SportsMatching.channelScore(laDerby, "Chargers @ Rams"))
+    }
+
+    @Test
+    fun guideTitlesWithCitiesNameTheGame() {
+        assertEquals(SportsMatching.BOTH_TEAMS, SportsMatching.score(bearsAtPackers, "NFL Football: Chicago at Green Bay"))
+    }
+
+    @Test
+    fun aRaceChannelNeedsTheRaceAndTheSport() {
+        val event = parseScoreboard(Competition.FORMULA_1, singapore).single()
+        assertEquals(SportsMatching.EVENT_NAME, SportsMatching.channelScore(event, "F1 | Singapore GP Live"))
+        assertEquals(0, SportsMatching.channelScore(event, "Singapore News"))
+        assertTrue("abbreviations stay out of the channel search", "CHI" !in SportsMatching.channelSearchTerms(bearsAtPackers))
+    }
+
+    @Test
+    fun sectionHeadersAreNotChannels() {
+        assertTrue(SportsMatching.isSeparator("# # # NFL GAMES # # #"))
+        assertTrue(SportsMatching.isSeparator("  ##### Bears vs Packers #####"))
+        assertTrue(!SportsMatching.isSeparator("NFL 03: Bears vs Packers"))
+    }
 }
