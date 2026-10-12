@@ -801,7 +801,10 @@ private fun ChannelRow(
         val text = if (focused) accent.onAccent else StageColors.Text
         val dim = if (focused) accent.onAccent.copy(alpha = 0.8f) else StageColors.Dim
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.mpx)) {
-            Text(match.channel.name, style = stageText(20, 700), color = text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.mpx)) {
+                if (match.favorite) FavoriteStar(focused)
+                Text(match.channel.name, style = stageText(20, 700), color = text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             val title = match.programmeTitle
             val start = match.programmeStartMs
             val stop = match.programmeStopMs
