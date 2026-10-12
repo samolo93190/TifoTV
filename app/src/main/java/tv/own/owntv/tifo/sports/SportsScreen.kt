@@ -652,7 +652,10 @@ private fun EventRow(
         modifier = modifier
             .fillMaxWidth()
             .then(if (selected) Modifier.background(accent.accent.copy(alpha = 0.12f), RoundedCornerShape(StageRadii.Row)) else Modifier),
-    ) { focused ->
+    ) { cursor ->
+        // The open game keeps its white text under the cursor too: on its tinted row the accent's
+        // dark text was hard to read.
+        val focused = cursor && !selected
         val text = if (focused) accent.onAccent else StageColors.Text
         val dim = if (focused) accent.onAccent.copy(alpha = 0.8f) else StageColors.Dim
         Column(Modifier.width(150.mpx), verticalArrangement = Arrangement.spacedBy(4.mpx)) {
