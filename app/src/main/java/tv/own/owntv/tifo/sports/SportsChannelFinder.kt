@@ -94,8 +94,8 @@ class SportsChannelFinder(
         // competition) and in the competition's own country ("Canal+ Live 3", "Sky Sports Main
         // Event", "M+ LaLiga"), looked for among that country's channels only. A streaming service
         // it lists without a channel ("Ligue 1+") brings that service's numbered and match-day feeds.
-        val listed = runCatching { fotMob.stationsFor(event, event.competition.fotMobCountries, nowMs) }.getOrDefault(emptyMap())
-        for ((fotMobCountry, stations) in listed) {
+        val fotMobListed = runCatching { fotMob.stationsFor(event, event.competition.fotMobCountries, nowMs) }.getOrDefault(emptyMap())
+        for ((fotMobCountry, stations) in fotMobListed) {
             val country = SportsMatching.playlistCountry(fotMobCountry)
             for (station in stations) {
                 val word = searchWord(station.name) ?: continue
