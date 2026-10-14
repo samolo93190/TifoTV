@@ -554,8 +554,10 @@ private fun GameInfo(
             summary == null && event.competition.kind != SportKind.TEAM -> Unit
             sections.isEmpty() -> Message(stringResource(R.string.tifo_sports_details_none))
             else -> {
-                // The stats first when ESPN has them; else whatever it has.
-                val preferred = if (InfoSection.STATS in sections) InfoSection.STATS else sections.first()
+                // Basketball opens on the box score, the rest on the stats, when ESPN has them;
+                // else on whatever it has.
+                val wanted = if (event.competition == Competition.NBA) InfoSection.BOX_SCORE else InfoSection.STATS
+                val preferred = if (wanted in sections) wanted else sections.first()
                 var open by remember(event.id) { mutableStateOf(preferred) }
                 if (open !in sections) open = preferred
                 Row(horizontalArrangement = Arrangement.spacedBy(6.mpx)) {
