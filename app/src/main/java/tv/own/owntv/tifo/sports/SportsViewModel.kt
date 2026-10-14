@@ -60,7 +60,7 @@ data class SportsUiState(
     /**
      * The rows of the Sports page: "My teams" first (the [favorites]' games, every day), then one
      * row per league with the [shownDay]'s games, in [Competition] order. Empty rows are left out;
-     * each keeps [events]' order (live, results, upcoming).
+     * each keeps [events]' order (live, upcoming, then ended).
      */
     fun rows(
         favorites: Set<String>,
@@ -313,16 +313,16 @@ class SportsViewModel(
 
         /** Finished games stay listed for a day, for the result. */
         const val FINISHED_KEEP_MS = 24 * 60 * 60_000L
+    }
+}
 
-        /** Live first, then results newest first, then upcoming soonest first. */
-        val eventOrder = Comparator<SportsEvent> { a, b ->
-            val rank = { e: SportsEvent -> when (e.state) { EventState.LIVE -> 0; EventState.FINISHED -> 1; EventState.UPCOMING -> 2 } }
-            val byState = rank(a).compareTo(rank(b))
-            when {
-                byState != 0 -> byState
-                a.state == EventState.FINISHED -> b.startMs.compareTo(a.startMs)
-                else -> a.startMs.compareTo(b.startMs)
-            }
-        }
+/** Live first, then upcoming soonest first, then the ended games, newest first. */
+internal val eventOrder = Comparator<SportsEvent> { a, b ->
+    val rank = { e: SportsEvent -> when (e.state) { EventState.LIVE -> 0; EventState.UPCOMING -> 1; EventState.FINISHED -> 2 } }
+    val byState = rank(a).compareTo(rank(b))
+    when {
+        byState != 0 -> byState
+        a.state == EventState.FINISHED -> b.startMs.compareTo(a.startMs)
+        else -> a.startMs.compareTo(b.startMs)
     }
 }

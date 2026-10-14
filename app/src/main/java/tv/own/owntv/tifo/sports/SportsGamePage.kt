@@ -533,8 +533,10 @@ private fun GameInfo(
             summary == null && event.competition.kind != SportKind.TEAM -> Unit
             sections.isEmpty() -> Message(stringResource(R.string.tifo_sports_details_none))
             else -> {
-                var open by remember(event.id) { mutableStateOf(sections.first()) }
-                if (open !in sections) open = sections.first()
+                // The stats first when ESPN has them; else whatever it has.
+                val preferred = if (InfoSection.STATS in sections) InfoSection.STATS else sections.first()
+                var open by remember(event.id) { mutableStateOf(preferred) }
+                if (open !in sections) open = preferred
                 Row(horizontalArrangement = Arrangement.spacedBy(6.mpx)) {
                     sections.forEach { s ->
                         StageTab(label = stringResource(sectionLabel(s, event)), count = "", selected = s == open, onClick = { open = s })

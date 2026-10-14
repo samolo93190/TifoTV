@@ -25,7 +25,7 @@ enum class ChannelKind { TV, EVENT, GUESS }
 data class ChannelGroup(
     val key: String,
     val tab: ChannelTab,
-    /** "FR", "UK"…; null for an event category or a channel without a country. */
+    /** "FR", "UK"…; null for a channel without a country. */
     val country: String?,
     val title: String,
     val kind: ChannelKind,
@@ -43,7 +43,8 @@ object SportsChannelGroups {
 
     /**
      * [matches] (best first) as rows per tab: TV and World grouped by country and channel, Event
-     * by provider category. Rows go by their best stream; TV and World by country first.
+     * by provider category. Rows go by country (France, the US, the UK, Canada first), then by
+     * their best stream.
      */
     fun group(matches: List<SportsChannelMatch>): Map<ChannelTab, List<ChannelGroup>> {
         val groups = LinkedHashMap<String, MutableList<SportsChannelMatch>>()
@@ -72,11 +73,13 @@ object SportsChannelGroups {
                 best.base < SportsMatching.SHOWS_THE_GAME -> ChannelKind.GUESS
                 else -> ChannelKind.TV
             }
-            ChannelGroup(key, tab, if (tab == ChannelTab.EVENT) null else country, title, kind, streams)
+            ChannelGroup(key, tab, country, title, kind, streams)
         }
         return ChannelTab.entries.associateWith { tab ->
             val inTab = rows.filter { it.tab == tab }
-            if (tab == ChannelTab.EVENT) inTab else inTab.sortedWith(compareBy<ChannelGroup> { countryRank(it.country) }.thenBy { it.country.orEmpty() })
+            // Event rows: France's, the US's, the UK's and Canada's first, each by its best match.
+            if (tab == ChannelTab.EVENT) inTab.sortedBy { countryRank(it.country).coerceAtMost(TV_COUNTRIES.size) }
+            else inTab.sortedWith(compareBy<ChannelGroup> { countryRank(it.country) }.thenBy { it.country.orEmpty() })
         }
     }
 

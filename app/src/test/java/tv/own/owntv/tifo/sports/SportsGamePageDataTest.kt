@@ -23,6 +23,9 @@ class SportsGamePageDataTest {
                 match("US| SOCCER PPV 12: Arsenal vs Chelsea", SportsMatching.EVENT_CHANNEL, "US| SOCCER PPV"),
                 match("US| SOCCER PPV 14: Arsenal vs Chelsea (Backup)", SportsMatching.EVENT_CHANNEL, "US| SOCCER PPV"),
                 match("CA| SOCCER PPV 3: Arsenal v Chelsea", SportsMatching.EVENT_CHANNEL, "CA| SOCCER PPV"),
+                match("AR| PPV 7: Arsenal vs Chelsea", SportsMatching.EVENT_CHANNEL, "AR| FUTBOL PPV"),
+                match("UK| PPV 2: Arsenal vs Chelsea", SportsMatching.EVENT_CHANNEL, "UK| PPV"),
+                match("FR| EVENT 4: Arsenal vs Chelsea", SportsMatching.EVENT_CHANNEL, "FR| EVENTS"),
                 match("FR| CANAL+ FOOT FHD", SportsMatching.LISTED_CHANNEL),
                 match("FR| CANAL+ FOOT HD ᴿᴬᵂ", SportsMatching.LISTED_CHANNEL),
                 match("UK| SKY SPORTS MAIN EVENT", SportsMatching.LISTED_CHANNEL),
@@ -37,11 +40,11 @@ class SportsGamePageDataTest {
         assertEquals(listOf("FR", "US", "UK"), tv.map { it.country })
         assertEquals(2, tv.first().streams.size)
         assertEquals(ChannelKind.GUESS, tv.first { it.title == "PEACOCK" }.kind)
-        // Event channels: one row per provider category, best first.
+        // Event channels: one row per provider category, FR, US, UK, CA first, then by best match.
         val events = groups.getValue(ChannelTab.EVENT)
-        assertEquals(listOf("US| SOCCER PPV", "CA| SOCCER PPV"), events.map { it.title })
-        assertEquals(2, events.first().streams.size)
-        assertTrue(events.all { it.kind == ChannelKind.EVENT && it.country == null })
+        assertEquals(listOf("FR| EVENTS", "US| SOCCER PPV", "UK| PPV", "CA| SOCCER PPV", "AR| FUTBOL PPV"), events.map { it.title })
+        assertEquals(2, events[1].streams.size)
+        assertTrue(events.all { it.kind == ChannelKind.EVENT })
         // Every other country.
         assertEquals(listOf("AR", "DE"), groups.getValue(ChannelTab.WORLD).map { it.country })
     }

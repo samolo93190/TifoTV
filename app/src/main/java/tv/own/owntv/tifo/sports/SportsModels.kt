@@ -37,18 +37,22 @@ enum class Competition(
     val broadcasters: List<String>,
     val usesEspnBroadcasts: Boolean = false,
     val tvCountries: List<String> = emptyList(),
+    /** The league's logo for a dark background (ESPN's), drawn on its game cards. */
+    val logoUrl: String? = null,
 ) {
     LIGUE_1(
         R.string.tifo_sports_ligue_1, "soccer/fra.1", SportKind.TEAM,
         listOf("Ligue 1"),
         // Ligue 1+ shows every game from 2026-27: its feeds are named "Ligue 1+ 3".
         broadcasters = listOf("Ligue 1"),
+        logoUrl = "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/9.png",
     ),
     PREMIER_LEAGUE(
         R.string.tifo_sports_premier_league, "soccer/eng.1", SportKind.TEAM,
         listOf("Premier League"),
         broadcasters = listOf("Peacock", "USA Network", "NBC Sports", "Canal+ Foot", "Canal+ Sport"),
         tvCountries = listOf("GB"),
+        logoUrl = "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/23.png",
     ),
     LALIGA(
         R.string.tifo_sports_laliga, "soccer/esp.1", SportKind.TEAM,
@@ -56,6 +60,7 @@ enum class Competition(
         // beIN Sports no longer has LaLiga in France; ESPN+ (ESPN's listing) carries it in the US.
         broadcasters = listOf("ESPN Deportes", "DAZN LaLiga"),
         tvCountries = listOf("ES"),
+        logoUrl = "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/15.png",
     ),
     CHAMPIONS_LEAGUE(
         R.string.tifo_sports_champions_league, "soccer/uefa.champions", SportKind.TEAM,
@@ -63,6 +68,7 @@ enum class Competition(
         // Paramount+ is an app: its games only show as event channels ("US| PARAMOUNT+ PPV").
         broadcasters = listOf("CBS Sports", "Golazo", "Canal+ Sport", "Canal+ Foot", "Canal+ Live"),
         tvCountries = listOf("GB"),
+        logoUrl = "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/2.png",
     ),
     NBA(
         R.string.tifo_sports_nba, "basketball/nba", SportKind.TEAM,
@@ -71,22 +77,26 @@ enum class Competition(
             "NBA TV", "League Pass", "ESPN", "ABC", "NBC", "Peacock", "Prime Video", "TNT", "TSN", "Sportsnet", "beIN Sports",
         ),
         usesEspnBroadcasts = true,
+        logoUrl = "https://a.espncdn.com/i/teamlogos/leagues/500-dark/nba.png",
     ),
     NFL(
         R.string.tifo_sports_nfl, "football/nfl", SportKind.TEAM,
         listOf("NFL"),
         broadcasters = listOf("NFL Network", "RedZone", "CBS", "FOX", "NBC", "ESPN", "ABC", "Prime Video", "TSN", "DAZN"),
         usesEspnBroadcasts = true,
+        logoUrl = "https://a.espncdn.com/i/teamlogos/leagues/500-dark/nfl.png",
     ),
     FORMULA_1(
         R.string.tifo_sports_formula_1, "racing/f1", SportKind.RACE,
         listOf("Formula 1", "Formule 1", "F1", "Grand Prix"),
         broadcasters = listOf("Canal+ Sport", "Canal+ F1", "F1 TV"),
+        logoUrl = "https://a.espncdn.com/i/teamlogos/leagues/500-dark/f1.png",
     ),
     ATP(
         R.string.tifo_sports_atp, "tennis/atp", SportKind.TOURNAMENT,
         listOf("ATP", "Tennis"),
         broadcasters = listOf("Tennis Channel", "Tennis TV", "Tennis", "ATP"),
+        logoUrl = "https://a.espncdn.com/combiner/i?img=/redesign/assets/img/icons/ESPN-icon-tennis.png",
     ),
     ;
 

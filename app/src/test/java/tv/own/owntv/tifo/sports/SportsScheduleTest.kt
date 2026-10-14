@@ -40,6 +40,15 @@ class SportsScheduleTest {
     }
 
     @Test
+    fun endedGamesComeAfterTheUpcomingOnes() {
+        val ended = event("ended", at(today, 13), EventState.FINISHED)
+        val live = event("live", at(today, 20), EventState.LIVE)
+        val later = event("later", at(today, 22))
+        val events = listOf(ended, later, live).sortedWith(eventOrder)
+        assertEquals(listOf("live", "later", "ended"), events.map { it.id })
+    }
+
+    @Test
     fun myTeamsComesFirstAndListsEveryDay() {
         val team = SportsTeam("Jets", "Jets", emptyList(), null, null, id = "20")
         val other = SportsTeam("Browns", "Browns", emptyList(), null, null, id = "5")

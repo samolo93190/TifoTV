@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -325,9 +326,18 @@ private fun GameCard(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Brush.linearGradient(listOf(Color(0xFF1C2444), Color(0xFF2B1A44)))),
+                .background(CardBackground),
             contentAlignment = Alignment.Center,
         ) {
+            // The league's logo, large and faded behind the game, with a shade so the teams read.
+            AsyncImage(
+                model = event.competition.logoUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                alpha = 0.32f,
+                modifier = Modifier.fillMaxSize().padding(10.mpx),
+            )
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Black.copy(alpha = 0.55f)))))
             val home = event.home
             val away = event.away
             if (home != null && away != null) {
@@ -544,6 +554,9 @@ internal fun isToday(ms: Long): Boolean {
 
 /** Weekday and day: "Sat 11 Oct". */
 internal const val DAY_SKELETON = "EEEdMMM"
+
+/** A card's ground under the league's logo: a neutral near-black, the app's own surfaces. */
+private val CardBackground = Color(0xFF151A24)
 
 private val CARD_WIDTH = 360.mpx
 private val CARD_HEIGHT = 203.mpx
