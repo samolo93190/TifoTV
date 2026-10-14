@@ -67,9 +67,11 @@ object SportsMatching {
      */
     val GUESS_COUNTRIES = setOf("US", "CA", "FR")
 
-    /** [base] points with the country's and the favourite's extras. */
-    fun finalScore(base: Int, channelName: String, favorite: Boolean): Int {
-        val country = when (countryOf(channelName)) {
+    /** [base] points with the country's (from the name, else the [category]) and the favourite's extras. */
+    fun finalScore(base: Int, channelName: String, favorite: Boolean, category: String? = null): Int {
+        // An event slot named after the game alone ("Aston Villa Fenerbahce @ Oct 14 :MTV FI 11")
+        // has its country in its category ("US| SOCCER PPV").
+        val country = when (countryOf(channelName) ?: category?.let(::countryOf)) {
             "US" -> US_BONUS
             "CA" -> CA_BONUS
             else -> 0

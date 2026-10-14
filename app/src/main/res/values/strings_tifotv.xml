@@ -66,6 +66,7 @@
     <string name="tifo_sports_card_line">%1$s · %2$s</string>
     <string name="tifo_sports_hide_scores">Hide scores</string>
     <string name="tifo_sports_show_scores">Show scores</string>
+    <string name="tifo_sports_points">%1$s pts</string>
     <plurals name="tifo_sports_streams">
         <item quantity="one">%1$s stream</item>
         <item quantity="other">%1$s streams</item>

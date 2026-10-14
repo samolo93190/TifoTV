@@ -203,7 +203,7 @@ class SportsChannelFinder(
                 val favorite = found.channel.id in favoriteIds
                 SportsChannelMatch(
                     channel = found.channel,
-                    score = SportsMatching.finalScore(found.base, found.channel.name, favorite),
+                    score = SportsMatching.finalScore(found.base, found.channel.name, favorite, found.category),
                     programmeTitle = found.programme?.title,
                     programmeStartMs = found.programme?.startMs,
                     programmeStopMs = found.programme?.stopMs,

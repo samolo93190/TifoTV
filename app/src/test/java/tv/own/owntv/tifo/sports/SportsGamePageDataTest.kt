@@ -13,7 +13,7 @@ class SportsGamePageDataTest {
 
     private fun match(name: String, base: Int, category: String? = null, favorite: Boolean = false): SportsChannelMatch {
         val channel = ChannelEntity(id = nextId++, sourceId = 1, categoryId = 1, name = name, streamUrl = "http://x/$name", remoteId = name)
-        return SportsChannelMatch(channel, SportsMatching.finalScore(base, name, favorite), null, null, null, favorite, base, category)
+        return SportsChannelMatch(channel, SportsMatching.finalScore(base, name, favorite, category), null, null, null, favorite, base, category)
     }
 
     @Test
@@ -62,6 +62,18 @@ class SportsGamePageDataTest {
         ).getValue(ChannelTab.EVENT)
         assertEquals(listOf("US", "US", "CA", null, "AR"), events.map { it.country })
         assertEquals(listOf("US| SOCCER PPV", "USA| PPV EVENTS", "CA| SOCCER PPV", "FINLAND MTV PPV VIP", "AR| FOOTBALL PPV"), events.map { it.title })
+    }
+
+    @Test
+    fun anEventSlotGetsItsCategorysCountryBonusAndTheFirstRowPlays() {
+        val finland = match("Aston Villa Fenerbahce @ Oct 14 9:45 PM :MTV FI 11", SportsMatching.EVENT_CHANNEL, "FINLAND MTV PPV VIP")
+        val us = match("Aston Villa vs Fenerbahce", SportsMatching.EVENT_CHANNEL, "US| SOCCER PPV")
+        // The US slot gets the US extra though its name has no country.
+        assertEquals(SportsMatching.EVENT_CHANNEL + SportsMatching.US_BONUS, us.score)
+        assertEquals(SportsMatching.EVENT_CHANNEL, finland.score)
+        val groups = SportsChannelGroups.group(listOf(finland, us))
+        assertEquals(ChannelTab.EVENT, SportsChannelGroups.firstTab(groups))
+        assertEquals("US| SOCCER PPV", SportsChannelGroups.first(groups)?.title)
     }
 
     @Test

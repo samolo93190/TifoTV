@@ -61,6 +61,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import tv.own.owntv.BuildConfig
 import tv.own.owntv.R
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.RecordingEntity
@@ -117,11 +118,13 @@ internal fun SportsGamePage(
     val recordingRows by vm.recordingRows.collectAsStateWithLifecycle()
     val qualityOf = { ch: ChannelEntity -> qualityVersion.let { qualities.qualityOf(ch) } }
 
-    // The best channel plays as soon as it is known; the cursor on another channel plays that one
+    // The first channel listed plays as soon as it is known; the cursor on another one plays it
     // once it settles, as in Live TV. What the stream turns out to be is kept for its tags.
+    // The channels as the list shows them; the preview starts on its first row.
+    val groups = remember(state.matches) { SportsChannelGroups.group(state.matches) }
     var previewed by remember(event.id) { mutableStateOf<SportsChannelMatch?>(null) }
-    LaunchedEffect(state.matches) {
-        if (previewed == null) previewed = state.matches.firstOrNull()
+    LaunchedEffect(groups) {
+        if (previewed == null) previewed = SportsChannelGroups.first(groups)?.best
     }
     val livePreviewSetting by liveVm.livePreviewEnabled.collectAsStateWithLifecycle()
     val effectivePreview = previewEnabled && livePreviewSetting
@@ -153,6 +156,7 @@ internal fun SportsGamePage(
             ChannelsCard(
                 event = event,
                 state = state,
+                groups = groups,
                 favoriteIds = favoriteIds,
                 qualityOf = qualityOf,
                 recordingFor = { match -> vm.recordingFor(match, recordingRows) },
@@ -256,6 +260,7 @@ internal fun qualityTags(quality: StreamQuality?): List<String> {
 private fun ChannelsCard(
     event: SportsEvent,
     state: SportsUiState,
+    groups: Map<ChannelTab, List<ChannelGroup>>,
     favoriteIds: Set<Long>,
     qualityOf: (ChannelEntity) -> StreamQuality?,
     recordingFor: (SportsChannelMatch) -> RecordingEntity?,
@@ -267,10 +272,9 @@ private fun ChannelsCard(
     onToggleRecording: (SportsChannelMatch) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val groups = remember(state.matches) { SportsChannelGroups.group(state.matches) }
     // The tab holding the channel the cursor comes back to, else the first one with channels.
     val returning = groups.entries.firstOrNull { (_, rows) -> rows.any { g -> g.streams.any { channelKey(it.channel.id) == refocus } } }?.key
-    val firstFull = ChannelTab.entries.firstOrNull { groups[it].orEmpty().isNotEmpty() } ?: ChannelTab.TV
+    val firstFull = SportsChannelGroups.firstTab(groups)
     var tab by remember(event.id, state.matching) { mutableStateOf(returning ?: firstFull) }
     var expanded by remember(event.id) { mutableStateOf(emptySet<String>()) }
     val firstTab = remember { FocusRequester() }
@@ -420,6 +424,7 @@ private fun GroupRow(
                     style = stageText(15, 500), color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (BuildConfig.DEBUG) StageTag(points(group.best.score), onAccent = if (focused) accent.onAccent else null)
             StageTag(
                 stringResource(
                     when (group.kind) {
@@ -488,12 +493,28 @@ private fun StreamRow(
                 }
             }
             qualityTags(quality).forEach { StageTag(it, onAccent = if (focused) accent.onAccent else null) }
+            if (BuildConfig.DEBUG) StageTag(pointsBreakdown(match), onAccent = if (focused) accent.onAccent else null)
         }
         StageButton(text = null, onClick = onToggleFavorite, icon = OwnTVIcon.STAR, iconFilled = favorite, tinted = favorite, round = true, height = 52.mpx, textSize = 20)
         if (recording != null || canRecord) {
             StageButton(text = null, onClick = onToggleRecording, icon = OwnTVIcon.REC, iconFilled = recording != null, tinted = recording != null, round = true, height = 52.mpx, textSize = 20)
         }
     }
+}
+
+/** "650 pts": a channel's points, shown in debug builds to see how the list is ranked. */
+@Composable
+private fun points(value: Int): String =
+    stringResource(R.string.tifo_sports_points, java.text.NumberFormat.getIntegerInstance(currentLocale()).format(value))
+
+/** "650 pts = 600 + 50": a stream's points, the rule's and the extras (country, favourite). */
+@Composable
+private fun pointsBreakdown(match: SportsChannelMatch): String {
+    val total = points(match.score)
+    val extra = match.score - match.base
+    if (extra == 0) return total
+    val number = java.text.NumberFormat.getIntegerInstance(currentLocale())
+    return total + " = " + number.format(match.base) + " + " + number.format(extra)
 }
 
 // ---------------------------------------------------------------------------------------------

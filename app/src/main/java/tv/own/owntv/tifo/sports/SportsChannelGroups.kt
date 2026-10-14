@@ -90,6 +90,13 @@ object SportsChannelGroups {
         }
     }
 
+    /** The tab a game page opens on: the first one with channels. */
+    fun firstTab(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelTab =
+        ChannelTab.entries.firstOrNull { groups[it].orEmpty().isNotEmpty() } ?: ChannelTab.TV
+
+    /** The row a game page lists first, whose best stream it previews and Watch would play. */
+    fun first(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelGroup? = groups[firstTab(groups)]?.firstOrNull()
+
     /** France, the US, the UK and Canada first, then the others alphabetically, no country last. */
     private fun countryRank(country: String?): Int = when (country) {
         null -> TV_COUNTRIES.size + 1
