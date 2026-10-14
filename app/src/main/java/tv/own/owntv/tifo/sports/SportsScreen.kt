@@ -3,6 +3,7 @@ package tv.own.owntv.tifo.sports
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +51,7 @@ import java.time.ZoneId
 import java.util.Calendar
 import tv.own.owntv.R
 import tv.own.owntv.core.database.entity.ChannelEntity
+import tv.own.owntv.features.live.edgeScrollSpec
 import tv.own.owntv.ui.components.OwnTVIcon
 import tv.own.owntv.ui.format.rememberBestDateFormatter
 import tv.own.owntv.ui.format.rememberSystemTimeFormatter
@@ -69,6 +72,7 @@ internal val LiveRed = Color(0xFFFF5A5A)
  * ([SportsGamePage]): its preview, its channels and ESPN's details. Back on the page comes back
  * to the card.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SportsScreen(
     onPlayChannel: (ChannelEntity) -> Unit,
@@ -234,21 +238,26 @@ fun SportsScreen(
                         )
                     }
                 }
-                else -> LazyColumn(
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(30.mpx),
-                    contentPadding = PaddingValues(bottom = 40.mpx),
-                ) {
-                    items(rows, key = { it.key }) { row ->
-                        GameRow(
-                            row = row,
-                            start = contentStart,
-                            refocus = refocus,
-                            onRefocused = { refocus = null },
-                            isFavorite = isFavorite,
-                            hideScores = hideScores,
-                            onOpen = { event -> vm.open(event, favoriteKeys) },
-                        )
+                // Scroll only as far as the focused card (and one more row or card) needs, as Movies
+                // and Series do: the TV default re-pins the focused card a third of the way down, so
+                // moving along a row slid the whole page up and down.
+                else -> CompositionLocalProvider(LocalBringIntoViewSpec provides edgeScrollSpec) {
+                    LazyColumn(
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(30.mpx),
+                        contentPadding = PaddingValues(bottom = 40.mpx),
+                    ) {
+                        items(rows, key = { it.key }) { row ->
+                            GameRow(
+                                row = row,
+                                start = contentStart,
+                                refocus = refocus,
+                                onRefocused = { refocus = null },
+                                isFavorite = isFavorite,
+                                hideScores = hideScores,
+                                onOpen = { event -> vm.open(event, favoriteKeys) },
+                            )
+                        }
                     }
                 }
             }
