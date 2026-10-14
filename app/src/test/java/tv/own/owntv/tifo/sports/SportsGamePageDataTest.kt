@@ -32,12 +32,14 @@ class SportsGamePageDataTest {
                 match("US| PEACOCK", SportsMatching.NETWORK),
                 match("AR| ESPN 2", SportsMatching.GUIDE_GAME),
                 match("DE| SKY SPORT 1", SportsMatching.GUIDE_GAME),
+                match("ES| M+ LALIGA TV", SportsMatching.LISTED_CHANNEL),
+                match("CA| TSN 1", SportsMatching.GUIDE_GAME),
             ),
         )
         // The same channel in two qualities is one row; FR, US, UK first.
         val tv = groups.getValue(ChannelTab.TV)
-        assertEquals(listOf("CANAL+ FOOT", "PEACOCK", "SKY SPORTS MAIN EVENT"), tv.map { it.title })
-        assertEquals(listOf("FR", "US", "UK"), tv.map { it.country })
+        assertEquals(listOf("CANAL+ FOOT", "PEACOCK", "SKY SPORTS MAIN EVENT", "M+ LALIGA TV"), tv.map { it.title })
+        assertEquals(listOf("FR", "US", "UK", "ES"), tv.map { it.country })
         assertEquals(2, tv.first().streams.size)
         assertEquals(ChannelKind.GUESS, tv.first { it.title == "PEACOCK" }.kind)
         // Event channels: one row per provider category, FR, US, UK, CA first, then by best match.
@@ -45,8 +47,8 @@ class SportsGamePageDataTest {
         assertEquals(listOf("FR| EVENTS", "US| SOCCER PPV", "UK| PPV", "CA| SOCCER PPV", "AR| FUTBOL PPV"), events.map { it.title })
         assertEquals(2, events[1].streams.size)
         assertTrue(events.all { it.kind == ChannelKind.EVENT })
-        // Every other country.
-        assertEquals(listOf("AR", "DE"), groups.getValue(ChannelTab.WORLD).map { it.country })
+        // Every other country, Canada included.
+        assertEquals(listOf("AR", "CA", "DE"), groups.getValue(ChannelTab.WORLD).map { it.country })
     }
 
     @Test

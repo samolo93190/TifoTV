@@ -1143,7 +1143,7 @@
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	name LIKE ?
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	title LIKE ?
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	:
-1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	CA
+1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	ES
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	FR
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	UK
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	US

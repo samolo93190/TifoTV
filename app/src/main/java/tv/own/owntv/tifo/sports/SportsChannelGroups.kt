@@ -4,7 +4,7 @@ import java.util.Locale
 
 /** The game page's channel tabs. */
 enum class ChannelTab {
-    /** Channels of the countries the app is set up for: France, the US, the UK, Canada. */
+    /** Channels of the countries the app is set up for: France, the US, the UK, Spain. */
     TV,
 
     /** Channels named after the game itself, from any country. */
@@ -39,11 +39,11 @@ data class ChannelGroup(
 object SportsChannelGroups {
 
     /** The countries of the TV tab, in the order their sections show. */
-    val TV_COUNTRIES = listOf("FR", "US", "UK", "CA")
+    val TV_COUNTRIES = listOf("FR", "US", "UK", "ES")
 
     /**
      * [matches] (best first) as rows per tab: TV and World grouped by country and channel, Event
-     * by provider category. Rows go by country (France, the US, the UK, Canada first), then by
+     * by provider category. Rows go by country (France, the US, the UK, Spain first), then by
      * their best stream.
      */
     fun group(matches: List<SportsChannelMatch>): Map<ChannelTab, List<ChannelGroup>> {
@@ -84,7 +84,7 @@ object SportsChannelGroups {
         }
         return ChannelTab.entries.associateWith { tab ->
             val inTab = rows.filter { it.tab == tab }
-            // Event rows: France's, the US's, the UK's and Canada's first, each by its best match.
+            // Event rows: France's, the US's, the UK's and Spain's first, each by its best match.
             if (tab == ChannelTab.EVENT) inTab.sortedBy { countryRank(it.country).coerceAtMost(TV_COUNTRIES.size) }
             else inTab.sortedWith(compareBy<ChannelGroup> { countryRank(it.country) }.thenBy { it.country.orEmpty() })
         }
@@ -97,7 +97,7 @@ object SportsChannelGroups {
     /** The row a game page lists first, whose best stream it previews and Watch would play. */
     fun first(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelGroup? = groups[firstTab(groups)]?.firstOrNull()
 
-    /** France, the US, the UK and Canada first, then the others alphabetically, no country last. */
+    /** France, the US, the UK and Spain first, then the others alphabetically, no country last. */
     private fun countryRank(country: String?): Int = when (country) {
         null -> TV_COUNTRIES.size + 1
         in TV_COUNTRIES -> TV_COUNTRIES.indexOf(country)
