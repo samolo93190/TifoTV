@@ -840,12 +840,23 @@ private fun TeamStats(lines: List<StatLine>) {
     lines.forEach { line ->
         Column(verticalArrangement = Arrangement.spacedBy(4.mpx)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(line.home, style = stageText(17, 800), color = StageColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text(line.label, style = stageText(15, 600), color = StageColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.weight(2f))
-                Text(line.away, style = stageText(17, 800), color = StageColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.mpx)) {
+                    Text(line.home, style = stageText(18, 800), color = StageColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    line.homeNote?.let { Text(it, style = stageText(13, 600), color = StageColors.Dim, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
+                Text(
+                    line.labelRes?.let { stringResource(it) } ?: line.label,
+                    style = stageText(15, 700), color = StageColors.Muted,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(2f),
+                )
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.mpx, Alignment.End)) {
+                    line.awayNote?.let { Text(it, style = stageText(13, 600), color = StageColors.Dim, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    Text(line.away, style = stageText(18, 800), color = StageColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
-            val h = line.home.toStatNumber()
-            val a = line.away.toStatNumber()
+            val h = line.homeValue?.toFloat() ?: line.home.toStatNumber()
+            val a = line.awayValue?.toFloat() ?: line.away.toStatNumber()
             if (h != null && a != null && h + a > 0f) {
                 Row(Modifier.fillMaxWidth().height(5.mpx).clip(RoundedCornerShape(3.mpx)).background(Color.White.copy(alpha = 0.08f))) {
                     if (h > 0f) Box(Modifier.weight(h).fillMaxHeight().background(accent.accent))

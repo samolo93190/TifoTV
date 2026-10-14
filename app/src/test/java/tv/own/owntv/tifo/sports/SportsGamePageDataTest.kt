@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tv.own.owntv.R
 import tv.own.owntv.core.database.entity.ChannelEntity
 
 /** What the game page shows: its channel rows and ESPN's details. */
@@ -110,6 +111,31 @@ class SportsGamePageDataTest {
         assertEquals("De Kuip, Rotterdam, Netherlands", s.venue)
         assertEquals(listOf("W", "L", "W", "W", "W"), s.form.first().games.map { it.result })
         assertTrue(s.standings.first().columns.containsAll(listOf("GP", "W", "D", "L", "GD", "P")))
+    }
+
+    @Test
+    fun footballShowsItsNineStats() {
+        val home = parseCoreStats(fixture("core_stats_home"))
+        val away = parseCoreStats(fixture("core_stats_away"))
+        val lines = footballStats(home, away, java.util.Locale.US)
+        assertEquals(
+            listOf(
+                R.string.tifo_sports_stat_xg, R.string.tifo_sports_stat_possession, R.string.tifo_sports_stat_shots_on_goal,
+                R.string.tifo_sports_stat_big_chances, R.string.tifo_sports_stat_corners, R.string.tifo_sports_stat_accurate_passes,
+                R.string.tifo_sports_stat_duels, R.string.tifo_sports_stat_saves, R.string.tifo_sports_stat_fouls,
+            ),
+            lines.map { it.labelRes },
+        )
+        assertEquals("0.54", lines[0].home)
+        assertEquals("48%", lines[1].home)
+        // Shots on goal and accurate passes carry their share of all shots and passes.
+        assertEquals("5", lines[2].home)
+        assertEquals("(38%)", lines[2].homeNote)
+        assertEquals("(87%)", lines[5].homeNote)
+        assertNull(lines[0].homeNote)
+        // A stat ESPN's per-team list lacks comes from the box score; one neither has is left out.
+        val boxOnly = footballStats(mapOf("saves" to 3.0), mapOf("saves" to 1.0), java.util.Locale.US)
+        assertEquals(listOf(R.string.tifo_sports_stat_saves), boxOnly.map { it.labelRes })
     }
 
     @Test

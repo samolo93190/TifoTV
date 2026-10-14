@@ -1,11 +1,17 @@
 package tv.own.owntv.tifo.sports
 
+import androidx.annotation.StringRes
+import java.text.NumberFormat
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import tv.own.owntv.R
 
 /** Which team a line of a game's summary belongs to. */
 enum class Side { HOME, AWAY, NONE }
@@ -35,8 +41,21 @@ data class LineupPlayer(val jersey: String?, val name: String, val position: Str
 /** A team's lineup: its formation ("4-3-3"), the starters and the bench. */
 data class Lineup(val side: Side, val team: String, val formation: String?, val starters: List<LineupPlayer>, val bench: List<LineupPlayer>)
 
-/** "Possession: 58% – 42%", home first. */
-data class StatLine(val label: String, val home: String, val away: String)
+/**
+ * "Possession: 58% – 42%", home first. [labelRes] names the stat in the user's language when the
+ * app picked it (football's nine); [homeNote] and [awayNote] follow the value ("9 (33%)");
+ * [homeValue] and [awayValue] size the bar between them.
+ */
+data class StatLine(
+    val label: String,
+    val home: String,
+    val away: String,
+    @param:StringRes val labelRes: Int? = null,
+    val homeNote: String? = null,
+    val awayNote: String? = null,
+    val homeValue: Double? = null,
+    val awayValue: Double? = null,
+)
 
 /** One table of a team's box score ("passing": C/ATT, YDS…; the NBA's single table). */
 data class PlayerTable(val side: Side, val team: String, val title: String?, val labels: List<String>, val rows: List<PlayerRow>)
@@ -70,6 +89,12 @@ data class GameSummary(
     val form: List<TeamForm> = emptyList(),
     val injuries: List<TeamInjuries> = emptyList(),
     val standings: List<Standings> = emptyList(),
+    /** ESPN's ids of the two teams, for its per-team statistics. */
+    val homeTeamId: String? = null,
+    val awayTeamId: String? = null,
+    /** The box score's team stats by ESPN's name ("possessionPct"), for football's own list. */
+    val homeStats: Map<String, Double> = emptyMap(),
+    val awayStats: Map<String, Double> = emptyMap(),
 )
 
 /**
@@ -81,18 +106,37 @@ class EspnSummary(private val http: OkHttpClient) {
 
     suspend fun load(event: SportsEvent): GameSummary? = withContext(Dispatchers.IO) {
         if (event.competition.kind != SportKind.TEAM) return@withContext null
-        runCatching {
-            val request = Request.Builder().url(urlFor(event)).build()
-            http.newCall(request).execute().use { response ->
-                check(response.isSuccessful) { "ESPN summary answered ${response.code}" }
-                parseSummary(response.body.string())
-            }
-        }.getOrNull()
+        val summary = runCatching { parseSummary(get(urlFor(event))) }.getOrNull() ?: return@withContext null
+        if (!event.competition.isFootball) return@withContext summary
+        // Football: the nine stats a match page shows, some only in ESPN's per-team statistics
+        // (expected goals, big chances, duels); the box score fills in when those don't load.
+        val (home, away) = coroutineScope {
+            val h = async { summary.homeTeamId?.let { id -> runCatching { parseCoreStats(get(coreStatsUrl(event, id))) }.getOrNull() }.orEmpty() }
+            val a = async { summary.awayTeamId?.let { id -> runCatching { parseCoreStats(get(coreStatsUrl(event, id))) }.getOrNull() }.orEmpty() }
+            h.await() to a.await()
+        }
+        val stats = footballStats(summary.homeStats + home, summary.awayStats + away, Locale.getDefault())
+        if (stats.isEmpty()) summary else summary.copy(teamStats = stats)
+    }
+
+    private fun get(url: String): String {
+        val request = Request.Builder().url(url).build()
+        return http.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "ESPN summary answered ${response.code}" }
+            response.body.string()
+        }
     }
 
     companion object {
         fun urlFor(event: SportsEvent): String =
             "https://site.api.espn.com/apis/site/v2/sports/" + event.competition.espnPath + "/summary?event=" + event.id
+
+        /** ESPN's statistics of one team in a game: "soccer/uefa.champions" is sport and league. */
+        fun coreStatsUrl(event: SportsEvent, teamId: String): String {
+            val (sport, league) = event.competition.espnPath.split('/', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
+            return "https://sports.core.api.espn.com/v2/sports/" + sport + "/leagues/" + league +
+                "/events/" + event.id + "/competitions/" + event.id + "/competitors/" + teamId + "/statistics"
+        }
     }
 }
 
@@ -104,6 +148,7 @@ internal fun parseSummary(json: String): GameSummary {
             val id = c.optString("id").ifBlank { c.optJSONObject("team")?.optString("id").orEmpty() }
             sides[id] = if (c.optString("homeAway") == "away") Side.AWAY else Side.HOME
         }
+    val ids = sides.entries.associate { (id, side) -> side to id }
     fun sideOf(team: JSONObject?): Side = sides[team?.optString("id").orEmpty()] ?: Side.NONE
     fun part(block: () -> Unit) = runCatching(block)
 
@@ -139,6 +184,10 @@ internal fun parseSummary(json: String): GameSummary {
         val home = teams.firstOrNull { sideOf(it.optJSONObject("team")) == Side.HOME } ?: teams.getOrNull(0)
         val away = teams.firstOrNull { sideOf(it.optJSONObject("team")) == Side.AWAY } ?: teams.getOrNull(1)
         if (home != null && away != null) {
+            fun numbers(team: JSONObject) = team.optJSONArray("statistics").objects().mapNotNull { st ->
+                st.optString("displayValue").trim().removeSuffix("%").toDoubleOrNull()?.let { st.optString("name") to it }
+            }.toMap()
+            summary = summary.copy(homeStats = numbers(home), awayStats = numbers(away))
             val awayStats = away.optJSONArray("statistics").objects()
             summary = summary.copy(
                 teamStats = home.optJSONArray("statistics").objects().mapNotNull { s ->
@@ -245,8 +294,64 @@ internal fun parseSummary(json: String): GameSummary {
             },
         )
     }
-    return summary
+    return summary.copy(homeTeamId = ids[Side.HOME], awayTeamId = ids[Side.AWAY])
 }
+
+/** ESPN's per-team statistics: every stat's value by its name, across its categories. */
+internal fun parseCoreStats(json: String): Map<String, Double> =
+    JSONObject(json).optJSONObject("splits")?.optJSONArray("categories").objects()
+        .flatMap { it.optJSONArray("stats").objects() }
+        .mapNotNull { st -> st.optDouble("value").takeIf { !it.isNaN() }?.let { st.optString("name") to it } }
+        .toMap()
+
+/**
+ * Football's nine stats, as a match page shows them: expected goals, possession, shots on goal
+ * (with the share of shots), big chances, corners, accurate passes (with the share of passes),
+ * duels won, saves, fouls. A stat neither team has is left out.
+ */
+internal fun footballStats(home: Map<String, Double>, away: Map<String, Double>, locale: Locale): List<StatLine> {
+    val whole = NumberFormat.getIntegerInstance(locale)
+    val xg = NumberFormat.getNumberInstance(locale).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }
+    val percent = NumberFormat.getPercentInstance(locale).apply { maximumFractionDigits = 0 }
+    fun share(part: Double?, total: Double?): String? =
+        if (part == null || total == null || total <= 0.0) null else "(" + percent.format(part / total) + ")"
+    return FOOTBALL_STATS.mapNotNull { stat ->
+        val h = home[stat.name]
+        val a = away[stat.name]
+        if (h == null && a == null) return@mapNotNull null
+        fun show(v: Double?): String = when {
+            v == null -> "–"
+            stat.name == "expectedGoals" -> xg.format(v)
+            stat.name == "possessionPct" -> percent.format(v / 100.0)
+            else -> whole.format(v)
+        }
+        StatLine(
+            label = stat.name,
+            home = show(h),
+            away = show(a),
+            labelRes = stat.labelRes,
+            homeNote = stat.of?.let { share(h, home[it]) },
+            awayNote = stat.of?.let { share(a, away[it]) },
+            homeValue = h ?: 0.0,
+            awayValue = a ?: 0.0,
+        )
+    }
+}
+
+/** A football stat: ESPN's name, its label, and the total it is a share of ("9 (33%)"). */
+private class FootballStat(val name: String, @param:StringRes val labelRes: Int, val of: String? = null)
+
+private val FOOTBALL_STATS = listOf(
+    FootballStat("expectedGoals", R.string.tifo_sports_stat_xg),
+    FootballStat("possessionPct", R.string.tifo_sports_stat_possession),
+    FootballStat("shotsOnTarget", R.string.tifo_sports_stat_shots_on_goal, of = "totalShots"),
+    FootballStat("bigChanceCreated", R.string.tifo_sports_stat_big_chances),
+    FootballStat("wonCorners", R.string.tifo_sports_stat_corners),
+    FootballStat("accuratePasses", R.string.tifo_sports_stat_accurate_passes, of = "totalPasses"),
+    FootballStat("duelsWon", R.string.tifo_sports_stat_duels),
+    FootballStat("saves", R.string.tifo_sports_stat_saves),
+    FootballStat("foulsCommitted", R.string.tifo_sports_stat_fouls),
+)
 
 /** Soccer's key events: goals, cards, substitutions and half time, oldest first. */
 private fun parseKeyEvents(events: JSONArray?, sideOf: (JSONObject?) -> Side): List<TimelineItem> =

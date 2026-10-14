@@ -65,6 +65,15 @@
     <string name="tifo_sports_hide_scores">Masquer les scores</string>
     <string name="tifo_sports_show_scores">Afficher les scores</string>
     <string name="tifo_sports_points">%1$s pts</string>
+    <string name="tifo_sports_stat_xg">Buts attendus (xG)</string>
+    <string name="tifo_sports_stat_possession">Possession</string>
+    <string name="tifo_sports_stat_shots_on_goal">Tirs cadrés</string>
+    <string name="tifo_sports_stat_big_chances">Grosses occasions créées</string>
+    <string name="tifo_sports_stat_corners">Corners obtenus</string>
+    <string name="tifo_sports_stat_accurate_passes">Passes réussies</string>
+    <string name="tifo_sports_stat_duels">Duels gagnés</string>
+    <string name="tifo_sports_stat_saves">Arrêts</string>
+    <string name="tifo_sports_stat_fouls">Fautes commises</string>
     <plurals name="tifo_sports_streams">
         <item quantity="one">%1$s flux</item>
         <item quantity="other">%1$s flux</item>
