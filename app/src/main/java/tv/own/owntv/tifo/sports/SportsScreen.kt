@@ -82,6 +82,8 @@ fun SportsScreen(
     previewEnabled: Boolean = true,
     /** Opens the Search tab on [query] ("CBS"); Back there comes back here. */
     onSearchChannels: (query: String) -> Unit = {},
+    /** Whether a game's page is open: the shell hides its status cluster over it. */
+    onGamePageChanged: (Boolean) -> Unit = {},
 ) {
     val vm = org.koin.androidx.compose.koinViewModel<SportsViewModel>()
     val state by vm.state.collectAsStateWithLifecycle()
@@ -100,6 +102,11 @@ fun SportsScreen(
     // Where the cursor goes next: the card a page closed on, the channel played full screen, the
     // broadcaster search left for.
     var refocus by remember { mutableStateOf(vm.takeReturnFocus()) }
+
+    // A game's page covers the whole tab: the shell's status cluster steps aside for it.
+    val pageOpen = state.selected != null && !settingsOpen
+    LaunchedEffect(pageOpen) { onGamePageChanged(pageOpen) }
+    DisposableEffect(Unit) { onDispose { onGamePageChanged(false) } }
 
     if (settingsOpen) {
         SportsTeamsSettings(
