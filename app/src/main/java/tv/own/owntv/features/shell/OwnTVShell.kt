@@ -818,6 +818,9 @@ fun OwnTVShell(
 
     // TifoTV: Sports is not a MainSection (see SportsRailItem); any section change closes it.
     var sportsOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    // TifoTV: a Sports game page is full screen, so the status cluster (last channel, playlist,
+    // clock) steps aside while it is open: it covered the page's score.
+    var sportsGameOpen by remember { mutableStateOf(false) }
     // TifoTV: Search opened from Sports ("All CBS channels"); Back there goes back to Sports.
     var sportsSearchReturn by remember { mutableStateOf(false) }
     LaunchedEffect(selectedSection) {
@@ -1134,6 +1137,7 @@ fun OwnTVShell(
                                 sportsOpen = false
                                 onSelectSection(MainSection.SEARCH)
                             },
+                            onGamePageChanged = { sportsGameOpen = it },
                             // So Back from Sports goes to its rail item, not to "Exit?", as from any section.
                             modifier = Modifier.fillMaxSize().onFocusChanged { if (it.hasFocus) focusedLayer = ShellLayer.CONTENT },
                         )
@@ -1384,7 +1388,7 @@ fun OwnTVShell(
                 }
             }
           }
-            tv.own.owntv.features.shell.components.StageStatusCluster(
+            if (!(sportsOpen && sportsGameOpen)) tv.own.owntv.features.shell.components.StageStatusCluster(
                 continuePill = continueTarget?.let { target ->
                     val live = target.kind == tv.own.owntv.features.home.ContinueKind.LIVE
                     tv.own.owntv.features.shell.components.ContinuePill(

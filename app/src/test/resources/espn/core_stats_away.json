@@ -1,0 +1,91 @@
+{
+ "splits": {
+  "categories": [
+   {
+    "name": "defensive",
+    "stats": []
+   },
+   {
+    "name": "general",
+    "stats": [
+     {
+      "name": "foulsCommitted",
+      "displayName": "Fouls Committed",
+      "value": 18.0,
+      "displayValue": "18"
+     },
+     {
+      "name": "wonCorners",
+      "displayName": "Corners Won",
+      "value": 1.0,
+      "displayValue": "1"
+     },
+     {
+      "name": "duelsWon",
+      "displayName": "Duels Won",
+      "value": 50.0,
+      "displayValue": "50"
+     }
+    ]
+   },
+   {
+    "name": "goalKeeping",
+    "stats": [
+     {
+      "name": "saves",
+      "displayName": "Saves",
+      "value": 3.0,
+      "displayValue": "3"
+     }
+    ]
+   },
+   {
+    "name": "offensive",
+    "stats": [
+     {
+      "name": "accuratePasses",
+      "displayName": "Accurate Passes",
+      "value": 512.0,
+      "displayValue": "512"
+     },
+     {
+      "name": "possessionPct",
+      "displayName": "Possession Percentage",
+      "value": 52.2,
+      "displayValue": "52.2"
+     },
+     {
+      "name": "shotsOnTarget",
+      "displayName": "Shots On Goal",
+      "value": 5.0,
+      "displayValue": "5"
+     },
+     {
+      "name": "totalPasses",
+      "displayName": "Passes",
+      "value": 564.0,
+      "displayValue": "564"
+     },
+     {
+      "name": "totalShots",
+      "displayName": "Shots",
+      "value": 11.0,
+      "displayValue": "11"
+     },
+     {
+      "name": "expectedGoals",
+      "displayName": "Expected Goals",
+      "value": 1.24,
+      "displayValue": "1.24"
+     },
+     {
+      "name": "bigChanceCreated",
+      "displayName": "Big Chances Created",
+      "value": 2.0,
+      "displayValue": "2"
+     }
+    ]
+   }
+  ]
+ }
+}

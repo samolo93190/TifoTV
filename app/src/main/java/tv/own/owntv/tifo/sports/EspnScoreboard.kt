@@ -87,47 +87,78 @@ internal fun parseEspnDate(raw: String?): Long? {
 
 internal fun parseScoreboard(competition: Competition, json: String, nowMs: Long = System.currentTimeMillis()): List<SportsEvent> {
     val events = JSONObject(json).optJSONArray("events") ?: return emptyList()
-    return (0 until events.length()).mapNotNull { i ->
+    return (0 until events.length()).flatMap { i ->
         runCatching {
             val event = events.getJSONObject(i)
-            if (competition.kind == SportKind.TOURNAMENT) parseTournament(competition, event, nowMs) else parseEvent(competition, event)
-        }.getOrNull()
+            if (competition.kind == SportKind.TOURNAMENT) parseTennisMatches(competition, event) else listOfNotNull(parseEvent(competition, event))
+        }.getOrDefault(emptyList())
     }
 }
 
 /**
- * A tennis tournament: ESPN gives it no status of its own, only its dates and its matches (under
- * groupings, one per draw), so it is live while a match is, or between its dates while matches
- * remain to be played.
+ * A tennis tournament's singles matches, one event each, named after the tournament: ESPN files
+ * them under groupings, one per draw. Doubles, women's draws and matches whose players aren't
+ * known yet are left out. A match's time is only an estimate from the order of play.
  */
-private fun parseTournament(competition: Competition, event: JSONObject, nowMs: Long): SportsEvent? {
-    val startMs = parseEspnDate(event.optString("date")) ?: return null
-    val endMs = parseEspnDate(event.optString("endDate")) ?: startMs
-    val matches = event.optJSONArray("groupings").objects().flatMap { it.optJSONArray("competitions").objects() } +
-        event.optJSONArray("competitions").objects()
-    val states = matches.map { it.optJSONObject("status")?.optJSONObject("type")?.optString("state") }
-    val state = when {
-        "in" in states -> EventState.LIVE
-        nowMs < startMs -> EventState.UPCOMING
-        nowMs <= endMs && "pre" in states -> EventState.LIVE
-        else -> EventState.FINISHED
+private fun parseTennisMatches(competition: Competition, event: JSONObject): List<SportsEvent> {
+    val tournament = event.optString("name").ifBlank { event.optString("shortName") }
+    val singles = event.optJSONArray("groupings").objects()
+        .filter { g -> g.optJSONObject("grouping")?.optString("displayName").orEmpty().let { SINGLES.containsMatchIn(it) && !WOMEN.containsMatchIn(it) } }
+        .flatMap { it.optJSONArray("competitions").objects() }
+    return singles.mapNotNull { match ->
+        val startMs = parseEspnDate(match.optString("date")) ?: parseEspnDate(match.optString("startDate")) ?: return@mapNotNull null
+        val type = match.optJSONObject("status")?.optJSONObject("type")
+        val state = when (type?.optString("state")) {
+            "in" -> EventState.LIVE
+            "post" -> EventState.FINISHED
+            else -> EventState.UPCOMING
+        }
+        var home: SportsTeam? = null
+        var away: SportsTeam? = null
+        match.optJSONArray("competitors").objects().forEach { c ->
+            val player = parsePlayer(c) ?: return@forEach
+            if (c.optString("homeAway") == "away") away = player else home = player
+        }
+        if (home == null || away == null) return@mapNotNull null
+        SportsEvent(
+            id = match.optString("id").ifBlank { return@mapNotNull null },
+            competition = competition,
+            name = tournament,
+            startMs = startMs,
+            state = state,
+            statusDetail = type?.optString("shortDetail").orEmpty(),
+            home = home,
+            away = away,
+            broadcasts = match.optJSONArray("broadcasts").objects().flatMap { it.optJSONArray("names").strings() }.distinct(),
+        )
     }
-    val broadcasts = matches.flatMap { m ->
-        m.optJSONArray("broadcasts").objects().flatMap { it.optJSONArray("names").strings() }
-    }.distinct()
-    return SportsEvent(
-        id = event.optString("id").ifBlank { return null },
-        competition = competition,
-        name = event.optString("name").ifBlank { event.optString("shortName") },
-        startMs = startMs,
-        state = state,
-        statusDetail = "",
-        home = null,
-        away = null,
-        broadcasts = broadcasts,
-        endMs = endMs,
+}
+
+/** A tennis player as a side: "N. Basilashvili" on the row, the surname also matched alone. */
+private fun parsePlayer(competitor: JSONObject): SportsTeam? {
+    val athlete = competitor.optJSONObject("athlete") ?: return null
+    val name = athlete.optString("displayName").ifBlank { athlete.optString("fullName") }
+    // A draw's later rounds wait for their players: "TBD".
+    if (name.isBlank() || name.equals("TBD", ignoreCase = true)) return null
+    val lines = competitor.optJSONArray("linescores").objects()
+    val sets = lines.count { it.optBoolean("winner") }
+    return SportsTeam(
+        name = name,
+        shortName = athlete.optString("shortName").ifBlank { name },
+        altNames = listOfNotNull(surnameOf(name)),
+        logoUrl = athlete.optJSONObject("flag")?.optString("href")?.takeIf { it.isNotBlank() },
+        score = if (lines.isEmpty()) null else sets.toString(),
+        id = competitor.optString("id"),
+        sets = lines.map { it.optDouble("value", 0.0).toInt().toString() },
     )
 }
+
+/** "Alexander Zverev" → "Zverev", "Alex de Minaur" → "de Minaur"; null for a single name. */
+internal fun surnameOf(name: String): String? =
+    name.trim().substringAfter(' ', "").trim().takeIf { it.isNotEmpty() }
+
+private val SINGLES = Regex("(?i)singles")
+private val WOMEN = Regex("(?i)women")
 
 private fun parseEvent(competition: Competition, event: JSONObject): SportsEvent? {
     val competitions = event.optJSONArray("competitions")
