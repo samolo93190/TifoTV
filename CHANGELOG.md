@@ -7,6 +7,21 @@
 > Issue numbers that are part of a title are fine; explanatory parentheticals are not. The detail —
 > what, why, files and verification — belongs in the commit message, never here.
 
+## v2.0.0 — 2026-10-14
+
+### ✨ New features
+- **⚽ A new Sports page: rows of games, one per league**
+- **📺 A page for each game: preview, channels and live details**
+- **📡 Channels sorted by country: TV, Event and World**
+- **📊 Summary, lineups, stats, box score and standings from ESPN**
+- **🏀 NBA national and local channels from NBA.com**
+- **🎾 Tennis listed match by match**
+- **🙈 Hide scores**
+
+### 🐛 Fixes
+- **The exact channel for each game is found and played first**
+- **Streaming apps no longer matched to unrelated channels**
+
 ## v5.1.0 — 2026-10-04
 
 ### ✨ New features
