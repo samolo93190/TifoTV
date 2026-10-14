@@ -40,8 +40,8 @@ class EspnTeamsTest {
         val bills = SportsTeam("Buffalo Bills", "Bills", emptyList(), null, null, id = "2")
         val rams = SportsTeam("Los Angeles Rams", "Rams", emptyList(), null, null, id = "14")
         fun game(id: String, home: SportsTeam, away: SportsTeam) = SportsEvent(id, Competition.NFL, "", 0L, EventState.UPCOMING, "", home, away, emptyList())
-        val state = SportsUiState(events = listOf(game("1", chargers, broncos), game("2", rams, bills)), myTeams = true)
+        val state = SportsUiState(events = listOf(game("1", chargers, broncos), game("2", rams, bills)))
         val keys = setOf(SportsFavorites.keyOf(Competition.NFL, "7"))
-        assertEquals(listOf("1"), state.visibleEvents(keys).map { it.id })
+        assertEquals(listOf("1"), state.rows(keys).first { it.competition == null }.events.map { it.id })
     }
 }

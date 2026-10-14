@@ -140,14 +140,16 @@ private fun parsePlayer(competitor: JSONObject): SportsTeam? {
     val name = athlete.optString("displayName").ifBlank { athlete.optString("fullName") }
     // A draw's later rounds wait for their players: "TBD".
     if (name.isBlank() || name.equals("TBD", ignoreCase = true)) return null
-    val sets = competitor.optJSONArray("linescores").objects().count { it.optBoolean("winner") }
+    val lines = competitor.optJSONArray("linescores").objects()
+    val sets = lines.count { it.optBoolean("winner") }
     return SportsTeam(
         name = name,
         shortName = athlete.optString("shortName").ifBlank { name },
         altNames = listOfNotNull(surnameOf(name)),
         logoUrl = athlete.optJSONObject("flag")?.optString("href")?.takeIf { it.isNotBlank() },
-        score = if (competitor.optJSONArray("linescores").objects().isEmpty()) null else sets.toString(),
+        score = if (lines.isEmpty()) null else sets.toString(),
         id = competitor.optString("id"),
+        sets = lines.map { it.optDouble("value", 0.0).toInt().toString() },
     )
 }
 

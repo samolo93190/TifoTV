@@ -236,7 +236,6 @@ class SportsMatchingTest {
     fun onlyTheUsLeaguesGoByEspnsListing() {
         val espn = Competition.entries.filter { it.usesEspnBroadcasts }.toSet()
         assertEquals(setOf(Competition.NBA, Competition.NFL), espn)
-        assertEquals(listOf("Ligue 1+"), Competition.LIGUE_1.homeBroadcasters)
         assertTrue(Competition.LIGUE_1.broadcasters.none { it.contains("beIN", ignoreCase = true) })
         // The last resort: "Ligue 1" is any channel named so, "ESPN" is never "ESPN+".
         assertTrue(SportsMatching.namesBroadcaster("FR| LIGUE 1+ 3", "Ligue 1", Competition.LIGUE_1))

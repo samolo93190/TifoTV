@@ -1,0 +1,1276 @@
+{
+ "header": {
+  "competitions": [
+   {
+    "status": {
+     "type": {
+      "id": "3",
+      "name": "STATUS_FINAL",
+      "state": "post",
+      "completed": true,
+      "description": "Final",
+      "detail": "Final",
+      "shortDetail": "Final"
+     },
+     "isTBDFlex": false
+    },
+    "competitors": [
+     {
+      "id": "30",
+      "homeAway": "home",
+      "score": "19",
+      "team": {
+       "id": "30",
+       "displayName": "Jacksonville Jaguars",
+       "abbreviation": "JAX"
+      }
+     },
+     {
+      "id": "21",
+      "homeAway": "away",
+      "score": "17",
+      "team": {
+       "id": "21",
+       "displayName": "Philadelphia Eagles",
+       "abbreviation": "PHI"
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "gameInfo": {
+  "venue": {
+   "id": "5534",
+   "guid": "022624d9-2dbd-3844-adab-9236c4319f9b",
+   "fullName": "Tottenham Hotspur Stadium",
+   "address": {
+    "city": "London",
+    "country": "England"
+   },
+   "grass": true,
+   "images": []
+  },
+  "attendance": 61322
+ },
+ "scoringPlays": [
+  {
+   "type": {
+    "id": "67",
+    "text": "Passing Touchdown",
+    "abbreviation": "TD"
+   },
+   "text": "Parker Washington 51 Yd pass from Trevor Lawrence (Cam Little Kick)",
+   "awayScore": 0,
+   "homeScore": 7,
+   "period": {
+    "number": 1
+   },
+   "clock": {
+    "value": 326.0,
+    "displayValue": "5:26"
+   },
+   "team": {
+    "id": "30"
+   }
+  },
+  {
+   "type": {
+    "id": "68",
+    "text": "Rushing Touchdown",
+    "abbreviation": "TD"
+   },
+   "text": "Will Shipley 2 Yd Rush (Jake Elliott Kick)",
+   "awayScore": 7,
+   "homeScore": 7,
+   "period": {
+    "number": 2
+   },
+   "clock": {
+    "value": 526.0,
+    "displayValue": "8:46"
+   },
+   "team": {
+    "id": "21"
+   }
+  },
+  {
+   "type": {
+    "id": "67",
+    "text": "Passing Touchdown",
+    "abbreviation": "TD"
+   },
+   "text": "Darius Cooper 62 Yd pass from Jalen Hurts (Jake Elliott Kick)",
+   "awayScore": 14,
+   "homeScore": 7,
+   "period": {
+    "number": 2
+   },
+   "clock": {
+    "value": 331.0,
+    "displayValue": "5:31"
+   },
+   "team": {
+    "id": "21"
+   }
+  },
+  {
+   "type": {
+    "id": "59",
+    "text": "Field Goal Good",
+    "abbreviation": "FG"
+   },
+   "text": "Cam Little 34 Yd Field Goal",
+   "awayScore": 14,
+   "homeScore": 10,
+   "period": {
+    "number": 3
+   },
+   "clock": {
+    "value": 431.0,
+    "displayValue": "7:11"
+   },
+   "team": {
+    "id": "30"
+   }
+  },
+  {
+   "type": {
+    "id": "67",
+    "text": "Passing Touchdown",
+    "abbreviation": "TD"
+   },
+   "text": "Parker Washington 27 Yd pass from Trevor Lawrence (Cam Little PAT Failed)",
+   "awayScore": 14,
+   "homeScore": 16,
+   "period": {
+    "number": 4
+   },
+   "clock": {
+    "value": 200.0,
+    "displayValue": "3:20"
+   },
+   "team": {
+    "id": "30"
+   }
+  },
+  {
+   "type": {
+    "id": "59",
+    "text": "Field Goal Good",
+    "abbreviation": "FG"
+   },
+   "text": "Jake Elliott 48 Yd Field Goal ",
+   "awayScore": 17,
+   "homeScore": 16,
+   "period": {
+    "number": 4
+   },
+   "clock": {
+    "value": 8.0,
+    "displayValue": "0:08"
+   },
+   "team": {
+    "id": "21"
+   }
+  }
+ ],
+ "boxscore": {
+  "teams": [
+   {
+    "team": {
+     "id": "21",
+     "displayName": "Philadelphia Eagles",
+     "abbreviation": "PHI",
+     "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/phi.png"
+    },
+    "homeAway": "away",
+    "statistics": [
+     {
+      "name": "firstDowns",
+      "label": "1st Downs",
+      "displayValue": "13"
+     },
+     {
+      "name": "firstDownsPassing",
+      "label": "Passing 1st downs",
+      "displayValue": "10"
+     },
+     {
+      "name": "firstDownsRushing",
+      "label": "Rushing 1st downs",
+      "displayValue": "1"
+     },
+     {
+      "name": "firstDownsPenalty",
+      "label": "1st downs from penalties",
+      "displayValue": "2"
+     },
+     {
+      "name": "thirdDownEff",
+      "label": "3rd down efficiency",
+      "displayValue": "6-15"
+     },
+     {
+      "name": "fourthDownEff",
+      "label": "4th down efficiency",
+      "displayValue": "0-2"
+     },
+     {
+      "name": "totalOffensivePlays",
+      "label": "Total Plays",
+      "displayValue": "59"
+     },
+     {
+      "name": "totalYards",
+      "label": "Total Yards",
+      "displayValue": "232"
+     },
+     {
+      "name": "yardsPerPlay",
+      "label": "Yards per Play",
+      "displayValue": "3.9"
+     },
+     {
+      "name": "totalDrives",
+      "label": "Total Drives",
+      "displayValue": "11"
+     },
+     {
+      "name": "netPassingYards",
+      "label": "Passing",
+      "displayValue": "210"
+     },
+     {
+      "name": "completionAttempts",
+      "label": "Comp/Att",
+      "displayValue": "21/40"
+     },
+     {
+      "name": "yardsPerPass",
+      "label": "Yards per pass",
+      "displayValue": "5.1"
+     },
+     {
+      "name": "interceptions",
+      "label": "Interceptions thrown",
+      "displayValue": "0"
+     },
+     {
+      "name": "sacksYardsLost",
+      "label": "Sacks-Yards Lost",
+      "displayValue": "1-10"
+     },
+     {
+      "name": "rushingYards",
+      "label": "Rushing",
+      "displayValue": "22"
+     },
+     {
+      "name": "rushingAttempts",
+      "label": "Rushing Attempts",
+      "displayValue": "18"
+     },
+     {
+      "name": "yardsPerRushAttempt",
+      "label": "Yards per rush",
+      "displayValue": "1.2"
+     },
+     {
+      "name": "redZoneAttempts",
+      "label": "Red Zone (Made-Att)",
+      "displayValue": "1-1"
+     },
+     {
+      "name": "totalPenaltiesYards",
+      "label": "Penalties",
+      "displayValue": "7-43"
+     },
+     {
+      "name": "turnovers",
+      "label": "Turnovers",
+      "displayValue": "0"
+     },
+     {
+      "name": "fumblesLost",
+      "label": "Fumbles lost",
+      "displayValue": "0"
+     },
+     {
+      "name": "interceptions",
+      "label": "Interceptions thrown",
+      "displayValue": "0"
+     },
+     {
+      "name": "defensiveTouchdowns",
+      "label": "Defensive / Special Teams TDs",
+      "displayValue": "0"
+     },
+     {
+      "name": "possessionTime",
+      "label": "Possession",
+      "displayValue": "24:58"
+     }
+    ]
+   },
+   {
+    "team": {
+     "id": "30",
+     "displayName": "Jacksonville Jaguars",
+     "abbreviation": "JAX",
+     "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/jax.png"
+    },
+    "homeAway": "home",
+    "statistics": [
+     {
+      "name": "firstDowns",
+      "label": "1st Downs",
+      "displayValue": "18"
+     },
+     {
+      "name": "firstDownsPassing",
+      "label": "Passing 1st downs",
+      "displayValue": "12"
+     },
+     {
+      "name": "firstDownsRushing",
+      "label": "Rushing 1st downs",
+      "displayValue": "6"
+     },
+     {
+      "name": "firstDownsPenalty",
+      "label": "1st downs from penalties",
+      "displayValue": "0"
+     },
+     {
+      "name": "thirdDownEff",
+      "label": "3rd down efficiency",
+      "displayValue": "5-16"
+     },
+     {
+      "name": "fourthDownEff",
+      "label": "4th down efficiency",
+      "displayValue": "2-4"
+     },
+     {
+      "name": "totalOffensivePlays",
+      "label": "Total Plays",
+      "displayValue": "68"
+     },
+     {
+      "name": "totalYards",
+      "label": "Total Yards",
+      "displayValue": "408"
+     },
+     {
+      "name": "yardsPerPlay",
+      "label": "Yards per Play",
+      "displayValue": "6.0"
+     },
+     {
+      "name": "totalDrives",
+      "label": "Total Drives",
+      "displayValue": "12"
+     },
+     {
+      "name": "netPassingYards",
+      "label": "Passing",
+      "displayValue": "306"
+     },
+     {
+      "name": "completionAttempts",
+      "label": "Comp/Att",
+      "displayValue": "24/39"
+     },
+     {
+      "name": "yardsPerPass",
+      "label": "Yards per pass",
+      "displayValue": "7.5"
+     },
+     {
+      "name": "interceptions",
+      "label": "Interceptions thrown",
+      "displayValue": "1"
+     },
+     {
+      "name": "sacksYardsLost",
+      "label": "Sacks-Yards Lost",
+      "displayValue": "2-25"
+     },
+     {
+      "name": "rushingYards",
+      "label": "Rushing",
+      "displayValue": "102"
+     },
+     {
+      "name": "rushingAttempts",
+      "label": "Rushing Attempts",
+      "displayValue": "27"
+     },
+     {
+      "name": "yardsPerRushAttempt",
+      "label": "Yards per rush",
+      "displayValue": "3.8"
+     },
+     {
+      "name": "redZoneAttempts",
+      "label": "Red Zone (Made-Att)",
+      "displayValue": "0-3"
+     },
+     {
+      "name": "totalPenaltiesYards",
+      "label": "Penalties",
+      "displayValue": "13-100"
+     },
+     {
+      "name": "turnovers",
+      "label": "Turnovers",
+      "displayValue": "1"
+     },
+     {
+      "name": "fumblesLost",
+      "label": "Fumbles lost",
+      "displayValue": "0"
+     },
+     {
+      "name": "interceptions",
+      "label": "Interceptions thrown",
+      "displayValue": "1"
+     },
+     {
+      "name": "defensiveTouchdowns",
+      "label": "Defensive / Special Teams TDs",
+      "displayValue": "0"
+     },
+     {
+      "name": "possessionTime",
+      "label": "Possession",
+      "displayValue": "35:02"
+     }
+    ]
+   }
+  ],
+  "players": [
+   {
+    "team": {
+     "id": "21",
+     "displayName": "Philadelphia Eagles",
+     "abbreviation": "PHI",
+     "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/phi.png"
+    },
+    "statistics": [
+     {
+      "name": "passing",
+      "labels": [
+       "C/ATT",
+       "YDS",
+       "AVG",
+       "TD",
+       "INT",
+       "SACKS",
+       "QBR",
+       "RTG"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4040715",
+         "displayName": "Jalen Hurts"
+        },
+        "stats": [
+         "21/40",
+         "220",
+         "5.5",
+         "1",
+         "0",
+         "1-10",
+         "47.0",
+         "77.1"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "rushing",
+      "labels": [
+       "CAR",
+       "YDS",
+       "AVG",
+       "TD",
+       "LONG"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4360238",
+         "displayName": "Dameon Pierce"
+        },
+        "stats": [
+         "11",
+         "14",
+         "1.3",
+         "0",
+         "6"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4431545",
+         "displayName": "Will Shipley"
+        },
+        "stats": [
+         "5",
+         "6",
+         "1.2",
+         "1",
+         "3"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4040715",
+         "displayName": "Jalen Hurts"
+        },
+        "stats": [
+         "2",
+         "2",
+         "1.0",
+         "0",
+         "2"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "receiving",
+      "labels": [
+       "REC",
+       "YDS",
+       "AVG",
+       "TD",
+       "LONG",
+       "TGTS"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4715355",
+         "displayName": "Darius Cooper"
+        },
+        "stats": [
+         "2",
+         "71",
+         "35.5",
+         "1",
+         "62",
+         "3"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4428850",
+         "displayName": "Dontayvion Wicks"
+        },
+        "stats": [
+         "5",
+         "63",
+         "12.6",
+         "0",
+         "19",
+         "8"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4870795",
+         "displayName": "Makai Lemon"
+        },
+        "stats": [
+         "5",
+         "43",
+         "8.6",
+         "0",
+         "18",
+         "7"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "3121023",
+         "displayName": "Dallas Goedert"
+        },
+        "stats": [
+         "6",
+         "38",
+         "6.3",
+         "0",
+         "17",
+         "9"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "team": {
+     "id": "30",
+     "displayName": "Jacksonville Jaguars",
+     "abbreviation": "JAX",
+     "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/jax.png"
+    },
+    "statistics": [
+     {
+      "name": "passing",
+      "labels": [
+       "C/ATT",
+       "YDS",
+       "AVG",
+       "TD",
+       "INT",
+       "SACKS",
+       "QBR",
+       "RTG"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4360310",
+         "displayName": "Trevor Lawrence"
+        },
+        "stats": [
+         "24/39",
+         "331",
+         "8.5",
+         "2",
+         "1",
+         "2-25",
+         "35.1",
+         "95.1"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "rushing",
+      "labels": [
+       "CAR",
+       "YDS",
+       "AVG",
+       "TD",
+       "LONG"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4882093",
+         "displayName": "Bhayshul Tuten"
+        },
+        "stats": [
+         "22",
+         "72",
+         "3.3",
+         "0",
+         "13"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4360310",
+         "displayName": "Trevor Lawrence"
+        },
+        "stats": [
+         "3",
+         "25",
+         "8.3",
+         "0",
+         "16"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4362619",
+         "displayName": "Chris Rodriguez Jr."
+        },
+        "stats": [
+         "2",
+         "5",
+         "2.5",
+         "0",
+         "5"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "receiving",
+      "labels": [
+       "REC",
+       "YDS",
+       "AVG",
+       "TD",
+       "LONG",
+       "TGTS"
+      ],
+      "athletes": [
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4432620",
+         "displayName": "Parker Washington"
+        },
+        "stats": [
+         "6",
+         "124",
+         "20.7",
+         "2",
+         "51",
+         "9"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4430539",
+         "displayName": "Brenton Strange"
+        },
+        "stats": [
+         "7",
+         "68",
+         "9.7",
+         "0",
+         "27",
+         "8"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "4879194",
+         "displayName": "Josh Cameron"
+        },
+        "stats": [
+         "3",
+         "43",
+         "14.3",
+         "0",
+         "32",
+         "6"
+        ]
+       },
+       {
+        "starter": null,
+        "didNotPlay": null,
+        "athlete": {
+         "id": "3916433",
+         "displayName": "Jakobi Meyers"
+        },
+        "stats": [
+         "2",
+         "37",
+         "18.5",
+         "0",
+         "19",
+         "3"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "leaders": [
+  {
+   "team": {
+    "id": "30",
+    "displayName": "Jacksonville Jaguars",
+    "abbreviation": "JAX",
+    "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/jax.png"
+   },
+   "leaders": [
+    {
+     "name": "passingYards",
+     "displayName": "Passing Yards",
+     "leaders": [
+      {
+       "displayValue": "24/39, 331 YDS, 2 TD, 1 INT",
+       "athlete": {
+        "id": "4360310",
+        "displayName": "Trevor Lawrence",
+        "shortName": "T. Lawrence"
+       }
+      }
+     ]
+    },
+    {
+     "name": "rushingYards",
+     "displayName": "Rushing Yards",
+     "leaders": [
+      {
+       "displayValue": "22 CAR, 72 YDS",
+       "athlete": {
+        "id": "4882093",
+        "displayName": "Bhayshul Tuten",
+        "shortName": "B. Tuten"
+       }
+      }
+     ]
+    },
+    {
+     "name": "receivingYards",
+     "displayName": "Receiving Yards",
+     "leaders": [
+      {
+       "displayValue": "6 REC, 124 YDS, 2 TD",
+       "athlete": {
+        "id": "4432620",
+        "displayName": "Parker Washington",
+        "shortName": "P. Washington"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "team": {
+    "id": "21",
+    "displayName": "Philadelphia Eagles",
+    "abbreviation": "PHI",
+    "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/phi.png"
+   },
+   "leaders": [
+    {
+     "name": "passingYards",
+     "displayName": "Passing Yards",
+     "leaders": [
+      {
+       "displayValue": "21/40, 220 YDS, 1 TD",
+       "athlete": {
+        "id": "4040715",
+        "displayName": "Jalen Hurts",
+        "shortName": "J. Hurts"
+       }
+      }
+     ]
+    },
+    {
+     "name": "rushingYards",
+     "displayName": "Rushing Yards",
+     "leaders": [
+      {
+       "displayValue": "11 CAR, 14 YDS",
+       "athlete": {
+        "id": "4360238",
+        "displayName": "Dameon Pierce",
+        "shortName": "D. Pierce"
+       }
+      }
+     ]
+    },
+    {
+     "name": "receivingYards",
+     "displayName": "Receiving Yards",
+     "leaders": [
+      {
+       "displayValue": "2 REC, 71 YDS, 1 TD",
+       "athlete": {
+        "id": "4715355",
+        "displayName": "Darius Cooper",
+        "shortName": "D. Cooper"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "injuries": [
+  {
+   "team": {
+    "id": "30",
+    "displayName": "Jacksonville Jaguars",
+    "abbreviation": "JAX",
+    "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/jax.png"
+   },
+   "injuries": [
+    {
+     "status": "Injured Reserve",
+     "athlete": {
+      "id": "4692525",
+      "displayName": "Anton Harrison",
+      "shortName": "A. Harrison"
+     }
+    },
+    {
+     "status": "Questionable",
+     "athlete": {
+      "id": "2970716",
+      "displayName": "Eric Murray",
+      "shortName": "E. Murray"
+     }
+    },
+    {
+     "status": "Questionable",
+     "athlete": {
+      "id": "4242149",
+      "displayName": "Montaric Brown",
+      "shortName": "M. Brown"
+     }
+    }
+   ]
+  },
+  {
+   "team": {
+    "id": "21",
+    "displayName": "Philadelphia Eagles",
+    "abbreviation": "PHI",
+    "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/phi.png"
+   },
+   "injuries": [
+    {
+     "status": "Doubtful",
+     "athlete": {
+      "id": "4571162",
+      "displayName": "Jalyx Hunt",
+      "shortName": "J. Hunt"
+     }
+    },
+    {
+     "status": "Questionable",
+     "athlete": {
+      "id": "4241478",
+      "displayName": "DeVonta Smith",
+      "shortName": "D. Smith"
+     }
+    },
+    {
+     "status": "Questionable",
+     "athlete": {
+      "id": "4567802",
+      "displayName": "Drew Kendall",
+      "shortName": "D. Kendall"
+     }
+    }
+   ]
+  }
+ ],
+ "standings": {
+  "groups": [
+   {
+    "header": "2026 NFC East Standings",
+    "standings": {
+     "entries": [
+      {
+       "team": "New York",
+       "id": "19",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "106"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "109"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".700"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "3"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "3-1-1"
+        }
+       ]
+      },
+      {
+       "team": "Philadelphia",
+       "id": "21",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "3"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "112"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "92"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".400"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "2"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "2-3"
+        }
+       ]
+      },
+      {
+       "team": "Dallas",
+       "id": "6",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "3"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "136"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "138"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".400"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "2"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "2-3"
+        }
+       ]
+      },
+      {
+       "team": "Washington",
+       "id": "28",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "3"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "149"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "115"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".300"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "1-3-1"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "header": "2026 AFC South Standings",
+    "standings": {
+     "entries": [
+      {
+       "team": "Jacksonville",
+       "id": "30",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "70"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "123"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".800"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "4"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "4-1"
+        }
+       ]
+      },
+      {
+       "team": "Indianapolis",
+       "id": "11",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "3"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "138"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "124"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".400"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "2"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "2-3"
+        }
+       ]
+      },
+      {
+       "team": "Houston",
+       "id": "34",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "4"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "112"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "110"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".200"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "1"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "1-4"
+        }
+       ]
+      },
+      {
+       "team": "Tennessee",
+       "id": "10",
+       "stats": [
+        {
+         "abbreviation": "L",
+         "displayValue": "5"
+        },
+        {
+         "abbreviation": "PA",
+         "displayValue": "109"
+        },
+        {
+         "abbreviation": "PF",
+         "displayValue": "58"
+        },
+        {
+         "abbreviation": "T",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "PCT",
+         "displayValue": ".000"
+        },
+        {
+         "abbreviation": "W",
+         "displayValue": "0"
+        },
+        {
+         "abbreviation": "Any",
+         "displayValue": "0-5"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

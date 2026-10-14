@@ -488,6 +488,18 @@ object SportsMatching {
     }
 
     /**
+     * A channel's name as a row shows it: without its country prefix and quality marks.
+     * "FR| CANAL+ FOOT FHD ᴿᴬᵂ" → "CANAL+ FOOT", "UK-NOWTV| SKY SPORTS MAIN EVENTS HD(BK)" → "SKY
+     * SPORTS MAIN EVENTS".
+     */
+    fun displayName(name: String): String {
+        val words = name.replace(COUNTRY_PREFIX, "").trim().split(WHITESPACE).filter { tvKey(it).isNotEmpty() }
+        return words.joinToString(" ").ifEmpty { name.trim() }
+    }
+
+    private val WHITESPACE = Regex("\\s+")
+
+    /**
      * The country a playlist channel's name starts with ("FR| …", "UK-NOWTV| …", "[ES] …"), upper
      * case, with GB written UK as playlists do; null when it has none.
      */

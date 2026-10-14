@@ -36,54 +36,54 @@ data class SportsUiState(
     val loading: Boolean = true,
     /** Every competition failed to load (offline, or ESPN changed its API). */
     val failed: Boolean = false,
-    /** Null = all competitions. */
-    val filter: Competition? = null,
-    /** The "My teams" tab: only games a favourite team plays in, across competitions. */
-    val myTeams: Boolean = false,
     val events: List<SportsEvent> = emptyList(),
+    /** The open game, whose page shows over the rows. */
     val selected: SportsEvent? = null,
     val matching: Boolean = false,
     val matches: List<SportsChannelMatch> = emptyList(),
-    /** The selected game's own broadcasters ("CBS", "Ligue 1+"), each a search of all channels. */
-    val broadcasters: List<String> = emptyList(),
-    /** The day the league tabs show; null = today, following midnight. */
+    /** Who officially shows the open game, by country code ("US", "FR", "GB"). */
+    val official: Map<String, List<String>> = emptyMap(),
+    /** ESPN's summary of the open game: timeline, lineups, stats… Null until loaded, or if it failed. */
+    val summary: GameSummary? = null,
+    val summaryLoading: Boolean = false,
+    /** The day the league rows show; null = today, following midnight. */
     val day: LocalDate? = null,
     /** A picked day's games are still being fetched. */
     val dayLoading: Boolean = false,
-    /** All's sub-tab: live, upcoming or ended games. Null = live when a game is, else upcoming. */
-    val stage: EventState? = null,
 ) {
     fun shownDay(today: LocalDate): LocalDate = day ?: today
 
-    /** The open tab's games on every day: [filter]'s, or all of them. */
-    fun tabEvents(): List<SportsEvent> = if (filter == null) events else events.filter { it.competition == filter }
+    /** Every game on the [shownDay], whatever its league. */
+    fun dayEvents(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): List<SportsEvent> =
+        events.filter { SportsSchedule.isOn(it, shownDay(today), today, zone) }
 
     /**
-     * The games the open tab lists; [favorites] are [SportsFavorites.keys], for "My teams", which
-     * lists every day. The other tabs list the [shownDay] only.
+     * The rows of the Sports page: "My teams" first (the [favorites]' games, every day), then one
+     * row per league with the [shownDay]'s games, in [Competition] order. Empty rows are left out;
+     * each keeps [events]' order (live, results, upcoming).
      */
-    fun visibleEvents(
+    fun rows(
         favorites: Set<String>,
         today: LocalDate = LocalDate.now(),
         zone: ZoneId = ZoneId.systemDefault(),
-    ): List<SportsEvent> = when {
-        myTeams -> events.filter { e ->
+    ): List<SportsRow> {
+        val mine = events.filter { e ->
             SportsFavorites.isFavorite(favorites, e.competition, e.home) || SportsFavorites.isFavorite(favorites, e.competition, e.away)
         }
-        filter == null -> dayEvents(today, zone).let { day -> day.filter { it.state == shownStage(day) } }
-        else -> dayEvents(today, zone)
+        val day = dayEvents(today, zone)
+        return buildList {
+            if (mine.isNotEmpty()) add(SportsRow(null, mine))
+            for (c in Competition.entries) {
+                val games = day.filter { it.competition == c }
+                if (games.isNotEmpty()) add(SportsRow(c, games))
+            }
+        }
     }
+}
 
-    /** The open tab's games on the [shownDay], whatever their state. */
-    fun dayEvents(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): List<SportsEvent> =
-        tabEvents().filter { SportsSchedule.isOn(it, shownDay(today), today, zone) }
-
-    /** All's open sub-tab, given the day's [games]. */
-    fun shownStage(games: List<SportsEvent>): EventState = stage ?: when {
-        games.any { it.state == EventState.LIVE } -> EventState.LIVE
-        games.any { it.state == EventState.UPCOMING } || games.none { it.state == EventState.FINISHED } -> EventState.UPCOMING
-        else -> EventState.FINISHED
-    }
+/** A row of game cards: a league's, or with no [competition], the favourite teams'. */
+data class SportsRow(val competition: Competition?, val events: List<SportsEvent>) {
+    val key: String get() = competition?.name ?: "mine"
 }
 
 /** A league's teams in the favourites picker. */
@@ -164,15 +164,9 @@ class SportsViewModel(
         }
     }
 
-    fun setFilter(competition: Competition?) = _state.update { it.copy(filter = competition, myTeams = false) }
-
-    fun setStage(stage: EventState) = _state.update { it.copy(stage = stage) }
-
-    fun showMyTeams() = _state.update { it.copy(filter = null, myTeams = true) }
-
     /**
-     * Shows [day]'s games on the league tabs (today when it is today), closing the open game. A day
-     * past the week already loaded is fetched now.
+     * Shows [day]'s games in the league rows (today when it is today). A day past the week already
+     * loaded is fetched now.
      */
     fun setDay(day: LocalDate) {
         val today = LocalDate.now()
@@ -181,7 +175,7 @@ class SportsViewModel(
         matchJob?.cancel()
         val known = !day.isBefore(today.minusDays(1)) && !day.isAfter(today.plusDays(LOADED_DAYS_AHEAD))
         _state.update {
-            it.copy(day = picked, dayLoading = !known, selected = null, matching = false, matches = emptyList(), broadcasters = emptyList())
+            it.copy(day = picked, dayLoading = !known)
         }
         if (!known) viewModelScope.launch { refresh() }
     }
@@ -205,33 +199,54 @@ class SportsViewModel(
         }
     }
 
+    private val summaries = EspnSummary(http)
+    private var summaryJob: Job? = null
+
     /**
-     * Opens [event] under its row and looks for the channels that show it; the open game again
-     * closes it. [favoriteTeams] are [SportsFavorites.keys]: a favourite team's channel goes first.
+     * Opens [event]'s page and looks for the channels that show it, and ESPN's summary of it (kept
+     * fresh while the game is live). [favoriteTeams] are [SportsFavorites.keys]: a favourite team's
+     * channel goes first.
      */
-    fun select(event: SportsEvent, favoriteTeams: Set<String> = emptySet()) {
+    fun open(event: SportsEvent, favoriteTeams: Set<String> = emptySet()) {
         matchJob?.cancel()
-        if (_state.value.selected?.id == event.id) {
-            _state.update { it.copy(selected = null, matching = false, matches = emptyList(), broadcasters = emptyList()) }
-            return
-        }
+        summaryJob?.cancel()
         _state.update {
             it.copy(
-                selected = event, matching = true, matches = emptyList(),
-                broadcasters = finder.firstBroadcasters(event),
+                selected = event, matching = true, matches = emptyList(), official = emptyMap(),
+                summary = null, summaryLoading = event.competition.kind == SportKind.TEAM,
             )
         }
         matchJob = viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val matches = runCatching { finder.find(event, now, favoriteTeams) }
+            val found = runCatching { finder.find(event, System.currentTimeMillis(), favoriteTeams) }
                 .onFailure { Log.w(TAG, "channel matching failed", it) }
-                .getOrDefault(emptyList())
-            // NBA.com's national and local channels replace ESPN's for an NBA game.
-            val broadcasters = runCatching { finder.broadcastersFor(event, now) }.getOrDefault(finder.firstBroadcasters(event))
+                .getOrNull()
             _state.update {
-                if (it.selected?.id == event.id) it.copy(matching = false, matches = matches, broadcasters = broadcasters) else it
+                if (it.selected?.id == event.id) {
+                    it.copy(matching = false, matches = found?.matches.orEmpty(), official = found?.official.orEmpty())
+                } else {
+                    it
+                }
             }
         }
+        summaryJob = viewModelScope.launch {
+            while (true) {
+                val summary = summaries.load(event)
+                _state.update {
+                    if (it.selected?.id == event.id) it.copy(summary = summary ?: it.summary, summaryLoading = false) else it
+                }
+                // The scoreboard keeps the open game's state current: a finished game is read once.
+                val current = _state.value.selected?.takeIf { it.id == event.id } ?: break
+                if (current.state == EventState.FINISHED) break
+                delay(if (current.state == EventState.LIVE) LIVE_REFRESH_MS else UPCOMING_SUMMARY_MS)
+            }
+        }
+    }
+
+    /** Closes the open game's page. */
+    fun close() {
+        matchJob?.cancel()
+        summaryJob?.cancel()
+        _state.update { it.copy(selected = null, matching = false, matches = emptyList(), official = emptyMap(), summary = null, summaryLoading = false) }
     }
 
     /** This profile's recordings, so a channel knows whether its game is already set to record. */
@@ -289,6 +304,9 @@ class SportsViewModel(
         const val TAG = "TifoSports"
         const val LIVE_REFRESH_MS = 30_000L
         const val IDLE_REFRESH_MS = 5 * 60_000L
+
+        /** An open game still to come: its lineups appear about an hour before kick-off. */
+        const val UPCOMING_SUMMARY_MS = 2 * 60_000L
 
         /** The days ahead [EspnScoreboard.load] always fetches, less one for time zones. */
         const val LOADED_DAYS_AHEAD = 6L

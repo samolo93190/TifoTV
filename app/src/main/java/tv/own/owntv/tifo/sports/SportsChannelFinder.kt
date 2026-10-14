@@ -24,7 +24,17 @@ data class SportsChannelMatch(
     val programmeStopMs: Long?,
     /** One of the user's favourite channels. */
     val favorite: Boolean = false,
+    /** Its points before the country's and the favourite's extras: which rule found it. */
+    val base: Int = score,
+    /** The provider's category it is filed under ("US| PARAMOUNT+ PPV"). */
+    val category: String? = null,
 )
+
+/**
+ * A game's channels, and who officially shows it, by country code ("US", "FR", "GB"): ESPN's or
+ * NBA.com's US channels, FotMob's stations (apps included, as FotMob lists them).
+ */
+data class SportsMatches(val matches: List<SportsChannelMatch>, val official: Map<String, List<String>>)
 
 /**
  * Finds the active playlist's channels that show an event, and gives each points (see
@@ -56,12 +66,15 @@ class SportsChannelFinder(
     private val fotMob = FotMobTv(http)
     private val nba = NbaTv(http)
 
-    private class Found(val channel: ChannelEntity, val base: Int, val programme: Programme?)
+    private class Found(val channel: ChannelEntity, val base: Int, val programme: Programme?, val category: String?)
 
     /** [favoriteTeams] are [SportsFavorites.keys]: a favourite team's local NBA channel goes first. */
-    suspend fun find(event: SportsEvent, nowMs: Long, favoriteTeams: Set<String> = emptySet()): List<SportsChannelMatch> = withContext(Dispatchers.IO) {
+    suspend fun find(event: SportsEvent, nowMs: Long, favoriteTeams: Set<String> = emptySet()): SportsMatches = withContext(Dispatchers.IO) {
+        val nbaListed = runCatching { nba.broadcastsFor(event, nowMs) }.getOrNull()
+        val fotMobListed = runCatching { fotMob.stationsFor(event, event.competition.fotMobCountries, nowMs) }.getOrDefault(emptyMap())
+        val official = officialBroadcasters(event, nbaListed, fotMobListed)
         val sourceIds = activeProfileSources(settings, sourceDao).first().liveSourceIds
-        if (sourceIds.isEmpty()) return@withContext emptyList()
+        if (sourceIds.isEmpty()) return@withContext SportsMatches(emptyList(), official)
 
         val categories = HashMap<Long, String?>()
         suspend fun categoryOf(channel: ChannelEntity): String? {
@@ -90,7 +103,7 @@ class SportsChannelFinder(
             if (guess && (SportsMatching.isEventSlot(name) || SportsMatching.countryOf(name) !in SportsMatching.GUESS_COUNTRIES)) return
             val old = best[channel.id]
             if (old == null || base > old.base) {
-                best[channel.id] = Found(channel, base, programme ?: old?.programme)
+                best[channel.id] = Found(channel, base, programme ?: old?.programme, category)
             }
         }
 
@@ -106,7 +119,6 @@ class SportsChannelFinder(
 
         // 2. NBA.com: the national channel, then the favourite team's local one, the home team's,
         // the away team's. US channels only, and never an event slot.
-        val nbaListed = runCatching { nba.broadcastsFor(event, nowMs) }.getOrNull()
         if (nbaListed != null) {
             val homeFavorite = SportsFavorites.isFavorite(favoriteTeams, event.competition, event.home)
             val awayFavorite = SportsFavorites.isFavorite(favoriteTeams, event.competition, event.away)
@@ -144,7 +156,6 @@ class SportsChannelFinder(
         // competition) and in the competition's own country ("Canal+ Live 3", "Sky Sports Main
         // Event", "M+ LaLiga"), looked for among that country's channels only. A streaming service
         // it lists without a channel ("Ligue 1+") brings that service's numbered and match-day feeds.
-        val fotMobListed = runCatching { fotMob.stationsFor(event, event.competition.fotMobCountries, nowMs) }.getOrDefault(emptyMap())
         for ((fotMobCountry, stations) in fotMobListed) {
             val country = SportsMatching.playlistCountry(fotMobCountry)
             for (station in stations) {
@@ -197,23 +208,24 @@ class SportsChannelFinder(
                     programmeStartMs = found.programme?.startMs,
                     programmeStopMs = found.programme?.stopMs,
                     favorite = favorite,
+                    base = found.base,
+                    category = found.category,
                 )
             }
             .sortedWith(compareByDescending<SportsChannelMatch> { it.score }.thenBy { it.channel.name.lowercase() })
             .take(MAX_RESULTS)
+            .let { SportsMatches(it, official) }
     }
 
-    /** Who shows [event] first: ESPN's listing for a US league, the home country's broadcaster otherwise. */
-    fun firstBroadcasters(event: SportsEvent): List<String> {
-        val competition = event.competition
-        val names = if (competition.usesEspnBroadcasts) event.broadcasts else competition.homeBroadcasters
-        return names.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
-    }
-
-    /** [firstBroadcasters], with NBA.com's national and local channels in place of ESPN's for the NBA. */
-    suspend fun broadcastersFor(event: SportsEvent, nowMs: Long): List<String> {
-        val listed = runCatching { nba.broadcastsFor(event, nowMs) }.getOrNull()?.all.orEmpty()
-        return listed.ifEmpty { firstBroadcasters(event) }
+    /** Who officially shows [event], by country: the US first, then FotMob's countries. */
+    private fun officialBroadcasters(event: SportsEvent, nba: NbaBroadcasts?, fotMob: Map<String, List<FotMobStation>>): Map<String, List<String>> {
+        val us = nba?.all?.takeIf { it.isNotEmpty() } ?: event.broadcasts.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+        return buildMap {
+            if (us.isNotEmpty()) put("US", us)
+            for (country in event.competition.fotMobCountries) {
+                fotMob[country]?.map { it.name }?.takeIf { it.isNotEmpty() }?.let { put(country, it) }
+            }
+        }
     }
 
     /**
@@ -384,7 +396,7 @@ class SportsChannelFinder(
         const val MINUTE = 60_000L
         const val HOUR = 60 * MINUTE
         const val MAX_PROGRAMMES = 400
-        const val MAX_RESULTS = 40
+        const val MAX_RESULTS = 80
         const val MAX_NAMED_CHANNELS = 400
 
         const val MAX_EVENT_NAMED_CHANNELS = 3000
