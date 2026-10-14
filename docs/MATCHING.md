@@ -25,7 +25,7 @@ From the strongest to the weakest:
 | 4 | The **official TV list** for the game names this channel (FotMob for football, NBA.com for the NBA) | 500 |
 | 5 | The provider's **TV guide** shows the game on this channel at that time (both teams named) | 500 |
 | 6 | **Tennis only:** the TV guide names the tournament (e.g. "Shanghai Masters") at that time | 450 |
-| 7 | A **streaming service** is announced (e.g. Ligue 1+) → its numbered channels (`FR\| LIGUE 1+ 3`) | 300 |
+| 7 | **Ligue 1+** is announced → its numbered channels (`FR\| LIGUE 1+ 3`). Other streaming apps (Disney+, Prime Video…) are never matched: their games only show as event channels | 300 |
 | 8 | **ESPN** says which US network has the game (CBS, NBC, ESPN…) → that network's US channel | 200 |
 | 9 | **Last resort**, only if nothing above found anything: the channels that usually show the league | 100 |
 

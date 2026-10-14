@@ -86,6 +86,8 @@ fun SportsScreen(
     val context = LocalContext.current
     val favorites = remember { SportsFavorites.get(context) }
     val favoriteKeys by favorites.keys.collectAsStateWithLifecycle()
+    val display = remember { SportsDisplay.get(context) }
+    val hideScores by display.hideScores.collectAsStateWithLifecycle()
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var dayPickerOpen by rememberSaveable { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
@@ -180,6 +182,15 @@ fun SportsScreen(
                 textSize = 18,
                 modifier = Modifier.refocusWhen(DAY_BUTTON_KEY, refocus) { refocus = null },
             )
+            // Scores off: for games watched later.
+            StageButton(
+                text = stringResource(if (hideScores) R.string.tifo_sports_show_scores else R.string.tifo_sports_hide_scores),
+                onClick = display::toggleScores,
+                icon = OwnTVIcon.EYE_OFF,
+                tinted = hideScores,
+                height = 52.mpx,
+                textSize = 18,
+            )
         }
         val rows = state.rows(favoriteKeys, today, zone)
         val isFavorite = { e: SportsEvent, team: SportsTeam? -> SportsFavorites.isFavorite(favoriteKeys, e.competition, team) }
@@ -235,6 +246,7 @@ fun SportsScreen(
                             refocus = refocus,
                             onRefocused = { refocus = null },
                             isFavorite = isFavorite,
+                            hideScores = hideScores,
                             onOpen = { event -> vm.open(event, favoriteKeys) },
                         )
                     }
@@ -252,6 +264,7 @@ private fun GameRow(
     refocus: String?,
     onRefocused: () -> Unit,
     isFavorite: (SportsEvent, SportsTeam?) -> Boolean,
+    hideScores: Boolean,
     onOpen: (SportsEvent) -> Unit,
 ) {
     // Coming back to a card further along the row: the row starts there, so the card is on screen.
@@ -285,6 +298,7 @@ private fun GameRow(
                     event = event,
                     showLeague = row.competition == null,
                     isFavorite = { team -> isFavorite(event, team) },
+                    hideScore = hideScores,
                     onClick = { onOpen(event) },
                     modifier = Modifier.refocusWhen(eventKey(event), refocus, onRefocused),
                 )
@@ -295,13 +309,15 @@ private fun GameRow(
 
 /**
  * A game as a 16:9 card: both teams' logos with the score (or kick-off time) between them, a LIVE
- * mark with the clock while it is on; under it "PSG vs Lyon" and its league or its state.
+ * mark with the clock while it is on ("vs" in place of the score when scores are hidden); under it
+ * "PSG vs Lyon" and its league or its state.
  */
 @Composable
 private fun GameCard(
     event: SportsEvent,
     showLeague: Boolean,
     isFavorite: (SportsTeam?) -> Boolean,
+    hideScore: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -347,8 +363,10 @@ private fun GameCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     CardTeam(home, isFavorite(home))
-                    val middle = if (event.state == EventState.UPCOMING || home.score == null || away.score == null) {
+                    val middle = if (event.state == EventState.UPCOMING) {
                         time(event.startMs)
+                    } else if (hideScore || home.score == null || away.score == null) {
+                        stringResource(R.string.tifo_sports_vs)
                     } else {
                         stringResource(R.string.tifo_sports_score, home.score, away.score)
                     }

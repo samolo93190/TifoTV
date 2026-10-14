@@ -500,11 +500,14 @@ object SportsMatching {
     private val WHITESPACE = Regex("\\s+")
 
     /**
-     * The country a playlist channel's name starts with ("FR| …", "UK-NOWTV| …", "[ES] …"), upper
-     * case, with GB written UK as playlists do; null when it has none.
+     * The country a playlist channel's name starts with ("FR| …", "UK-NOWTV| …", "[ES] …", "USA| …"),
+     * upper case, as two letters where playlists use three ("USA" is "US"), and GB written UK as
+     * playlists do; null when it has none.
      */
     fun countryOf(channelName: String): String? =
-        CHANNEL_COUNTRY.find(channelName)?.groupValues?.get(1)?.uppercase(Locale.ROOT)?.let { if (it == "GB") "UK" else it }
+        CHANNEL_COUNTRY.find(channelName)?.groupValues?.get(1)?.uppercase(Locale.ROOT)?.let { COUNTRY_ALIASES[it] ?: it }
+
+    private val COUNTRY_ALIASES = mapOf("GB" to "UK", "GBR" to "UK", "ENG" to "UK", "USA" to "US", "FRA" to "FR", "CAN" to "CA")
 
     /** FotMob's country code as playlists write it: "GB" is "UK". */
     fun playlistCountry(fotMobCountry: String): String =
@@ -526,12 +529,13 @@ object SportsMatching {
     /**
      * Whether a playlist channel is one of the feeds of [service] ("Ligue 1+"): the service itself,
      * a numbered feed ("FR| LIGUE 1+ 3 HD", "FR| LIGUE1 + 7") or a match-day one ("FR| LIGUE1+ FHD
-     * ( Samedi Match 1)") — never the service's other channels ("Disney+ Films 1"). Generic apps
-     * (DAZN, myCANAL) name no feed at all.
+     * ( Samedi Match 1)"). Only for [GAME_FEED_SERVICES], whose feeds each carry a game: a
+     * streaming app's numbered channels ("DISNEY+ 10") show anything, so its game is only found
+     * through an event channel named after it.
      */
     fun isServiceFeed(channelName: String, service: String): Boolean {
         val key = tvKey(service)
-        if (key.length < 4 || key in GENERIC_SERVICES) return false
+        if (key !in GAME_FEED_SERVICES) return false
         val channel = tvKey(channelName)
         return channel == key || (channel.startsWith("$key ") && SERVICE_FEED.containsMatchIn(channel.substring(key.length + 1)))
     }
@@ -557,7 +561,8 @@ object SportsMatching {
         "8k", "4k", "uhd", "fhd", "hd", "hdr", "sd", "lq", "1080p", "720p", "3840p", "2160p", "hevc", "h265",
         "50fps", "60fps", "raw", "backup", "bk", "vip",
     )
-    private val GENERIC_SERVICES = setOf("dazn", "dazn com", "mycanal", "youtube", "now", "apple tv", "apple tv plus")
+    /** The services whose numbered feeds are one game each, by [tvKey]: Ligue 1+. */
+    private val GAME_FEED_SERVICES = setOf("ligue 1 plus")
     private val SERVICE_FEED = Regex("""^(\d+|(vendredi|samedi|dimanche|lundi|mardi|mercredi|jeudi|match|multiplex|canal multiplex)\b)""")
     private val SLOT_WORDS = Regex("""\b(ppv|event|events|evento|eventos)\b""")
     private val NOT_LIVE = Regex("""\b(highlights?|replay|rediffusion|resume|best of|magazine|mag|weekly|review|temps forts|preview)\b""")

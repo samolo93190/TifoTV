@@ -51,10 +51,17 @@ object SportsChannelGroups {
         val meta = HashMap<String, Triple<ChannelTab, String?, String>>()
         for (match in matches.sortedByDescending { it.score }) {
             val name = match.channel.name
-            val country = SportsMatching.countryOf(name)
+            val category = match.category?.trim()?.takeIf { it.isNotEmpty() }
+            // An event slot is often named after the game alone ("AS Roma Real Madrid @ Oct 14
+            // :MTV FI 09"): its category says the country ("US| SOCCER PPV").
+            val event = match.base == SportsMatching.EVENT_CHANNEL
+            val country = if (event) {
+                category?.let(SportsMatching::countryOf) ?: SportsMatching.countryOf(name)
+            } else {
+                SportsMatching.countryOf(name) ?: category?.let(SportsMatching::countryOf)
+            }
             val key: String
-            if (match.base == SportsMatching.EVENT_CHANNEL) {
-                val category = match.category?.trim()?.takeIf { it.isNotEmpty() }
+            if (event) {
                 key = "event:" + (category ?: name).lowercase(Locale.ROOT)
                 meta.getOrPut(key) { Triple(ChannelTab.EVENT, country, category ?: name) }
             } else {

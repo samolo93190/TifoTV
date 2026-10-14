@@ -50,6 +50,21 @@ class SportsGamePageDataTest {
     }
 
     @Test
+    fun anEventSlotNamedAfterTheGameTakesItsCategorysCountry() {
+        val events = SportsChannelGroups.group(
+            listOf(
+                match("AS Roma Real Madrid @ Oct 14 9:40 PM :MTV FI 09", SportsMatching.EVENT_CHANNEL, "FINLAND MTV PPV VIP"),
+                match("AR| FOOTBALL 3: Roma vs Real Madrid", SportsMatching.EVENT_CHANNEL, "AR| FOOTBALL PPV"),
+                match("AS Roma vs Real Madrid 21:00", SportsMatching.EVENT_CHANNEL, "US| SOCCER PPV"),
+                match("Roma v Real Madrid", SportsMatching.EVENT_CHANNEL, "CA| SOCCER PPV"),
+                match("Roma - Real Madrid", SportsMatching.EVENT_CHANNEL, "USA| PPV EVENTS"),
+            ),
+        ).getValue(ChannelTab.EVENT)
+        assertEquals(listOf("US", "US", "CA", null, "AR"), events.map { it.country })
+        assertEquals(listOf("US| SOCCER PPV", "USA| PPV EVENTS", "CA| SOCCER PPV", "FINLAND MTV PPV VIP", "AR| FOOTBALL PPV"), events.map { it.title })
+    }
+
+    @Test
     fun aRowShowsTheChannelsName() {
         assertEquals("CANAL+ FOOT", SportsMatching.displayName("FR| CANAL+ FOOT FHD ᴿᴬᵂ"))
         assertEquals("SKY SPORTS MAIN EVENTS", SportsMatching.displayName("UK-NOWTV| SKY SPORTS MAIN EVENTS HD(BK)"))

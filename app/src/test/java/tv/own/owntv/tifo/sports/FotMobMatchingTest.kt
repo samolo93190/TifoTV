@@ -57,6 +57,9 @@ class FotMobMatchingTest {
         assertFalse(SportsMatching.isServiceFeed("FR| DISNEY+ FILMS 1 FHD", "Disney+"))
         assertFalse(SportsMatching.isServiceFeed("FR| DAZN 1 FHD", "DAZN"))
         assertFalse(SportsMatching.isServiceFeed("FR| MYCANAL", "myCANAL"))
+        // A streaming app's numbered channels show anything: never its game.
+        assertFalse(SportsMatching.isServiceFeed("FR| DISNEY+ 10", "Disney+"))
+        assertFalse(SportsMatching.isServiceFeed("FR| PRIME VIDEO 2", "Prime Video"))
     }
 
     @Test

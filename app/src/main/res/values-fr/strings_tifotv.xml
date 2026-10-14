@@ -62,6 +62,8 @@
     <string name="tifo_sports_details_none">ESPN n\'a pas encore de détails pour ce match.</string>
     <string name="tifo_sports_official">Chaînes officielles</string>
     <string name="tifo_sports_card_line">%1$s · %2$s</string>
+    <string name="tifo_sports_hide_scores">Masquer les scores</string>
+    <string name="tifo_sports_show_scores">Afficher les scores</string>
     <plurals name="tifo_sports_streams">
         <item quantity="one">%1$s flux</item>
         <item quantity="other">%1$s flux</item>
