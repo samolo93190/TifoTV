@@ -121,10 +121,9 @@ class FotMobMatchingTest {
         assertEquals(listOf("FR", "GB"), Competition.PREMIER_LEAGUE.fotMobCountries)
         assertEquals(listOf("FR", "ES"), Competition.LALIGA.fotMobCountries)
         assertEquals(listOf("FR"), Competition.LIGUE_1.fotMobCountries)
-        assertEquals(listOf("FR"), Competition.CHAMPIONS_LEAGUE.fotMobCountries)
+        assertEquals(listOf("FR", "GB"), Competition.CHAMPIONS_LEAGUE.fotMobCountries)
         assertTrue(Competition.NBA.fotMobCountries.isEmpty())
         assertTrue(Competition.FORMULA_1.fotMobCountries.isEmpty())
-        assertTrue(SportsMatching.LISTED_CHANNEL > SportsMatching.LISTED_AND_SHOWING)
-        assertTrue(SportsMatching.LISTED_SERVICE in (SportsMatching.BROADCASTER + 1) until SportsMatching.BEST_MATCH)
+        assertTrue(SportsMatching.LISTED_SERVICE in (SportsMatching.NETWORK + 1) until SportsMatching.SHOWS_THE_GAME)
     }
 }

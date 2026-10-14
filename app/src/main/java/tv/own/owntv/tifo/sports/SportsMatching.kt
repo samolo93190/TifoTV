@@ -11,60 +11,71 @@ import java.util.Locale
  */
 object SportsMatching {
 
-    /** Both teams in the title. */
-    const val BOTH_TEAMS = 100
+    // Points: the more sure a channel shows this very game, the more it gets; the most goes first
+    // and is what Watch plays. The rules, for users: docs/MATCHING.md.
 
+    /** One of the user's favourite channels (★) that shows this game ([SHOWS_THE_GAME] or more). */
+    const val FAVORITE_BONUS = 3000
 
-    /** From this score a match is shown as the best one. */
-    const val BEST_MATCH = 70
+    /** A channel named after the game itself ("US| SOCCER PPV 41: Paris SG vs Lyon"). */
+    const val EVENT_CHANNEL = 600
 
-    /** A race or tournament by its own name ("Singapore Grand Prix" for the Singapore GP). */
-    const val EVENT_NAME = 70
+    /** The channel the game's official TV list names (FotMob for football). */
+    const val LISTED_CHANNEL = 500
 
-    /** Only the competition ("Multiplex Ligue 1", "NFL Sunday"), airing at the event's time. */
-    const val COMPETITION_ONLY = 30
+    /** The guide shows the game on the channel, both teams (or players) named, at its time. */
+    const val GUIDE_GAME = 500
 
-    /** A channel whose name is one of the competition's usual broadcasters. */
-    const val BROADCASTER = 20
+    /** Tennis: the guide names the tournament ("Shanghai Masters") at the match's time. */
+    const val GUIDE_TOURNAMENT = 450
 
-    /**
-     * A playlist channel named after the game itself ("NFL 03: Bears vs Packers", "LIGUE 1 | PSG -
-     * Lyon"). Providers make these per game, often without a guide, so they rank first.
-     */
-    const val EVENT_CHANNEL = 110
-
-    /**
-     * A channel of the game's own broadcaster (the one ESPN lists for an NFL or NBA game, the home
-     * country's for the others) whose guide or name also shows the game. The most direct answer,
-     * so it goes first.
-     */
-    const val LISTED_AND_SHOWING = 130
+    /** From here a match is about this exact game, from any country, and a favourite counts. */
+    const val SHOWS_THE_GAME = GUIDE_TOURNAMENT
 
     /**
-     * One of the user's favourite channels from the game's own broadcaster, which the guide may
-     * not confirm: the channel they already watch it on.
+     * NBA.com's channel for the game, above event channels so Watch plays the official one:
+     * national first, then the favourite team's local channel, the home team's, the away team's
+     * ([NBA_RANK] apart).
      */
-    const val FAVORITE_BROADCASTER = 150
-
-    /**
-     * The exact channel FotMob's TV guide lists for the game in the channel's own country ("Canal+
-     * Live 3" in France, "Sky Sports Main Event" in the UK): named for this very game, so above a
-     * broadcaster that merely also shows it.
-     */
-    const val LISTED_CHANNEL = 140
+    const val NBA_LISTED = 700
+    const val NBA_RANK = 10
 
     /**
      * A feed of the streaming service FotMob lists without naming a channel ("Ligue 1+" →
      * "FR| LIGUE 1+ 3", "FR| LIGUE1+ (Samedi Match 1)"): the game is on one of them.
      */
-    const val LISTED_SERVICE = 60
+    const val LISTED_SERVICE = 300
+
+    /** A US channel of the network ESPN lists for the game (CBS, NBC, ESPN…). */
+    const val NETWORK = 200
+
+    /** Formula 1: the guide names only the series ("F1 : le mag") at the race's time. */
+    const val COMPETITION_ONLY = 150
+
+    /** Last resort, when nothing above found anything: a channel that usually shows the league. */
+    const val LAST_RESORT = 100
+
+    /** Between two equal channels the US one comes first, then the Canadian one. */
+    const val US_BONUS = 50
+    const val CA_BONUS = 49
 
     /**
-     * The countries whose channels can be guessed from a broadcaster's name alone (the
-     * competition's usual [Competition.broadcasters]); elsewhere "Paramount" or "Canal" name
-     * unrelated channels (ARG| PARAMOUNT, ARG| CANAL 13).
+     * The countries whose channels can be guessed (a service's feeds, ESPN's network, the
+     * league's usual channels); elsewhere "Paramount" or "Canal" name unrelated channels (ARG|
+     * PARAMOUNT, ARG| CANAL 13). The other countries' channels only come from this game's own
+     * guide, name or TV list.
      */
     val GUESS_COUNTRIES = setOf("US", "CA", "FR")
+
+    /** [base] points with the country's and the favourite's extras. */
+    fun finalScore(base: Int, channelName: String, favorite: Boolean): Int {
+        val country = when (countryOf(channelName)) {
+            "US" -> US_BONUS
+            "CA" -> CA_BONUS
+            else -> 0
+        }
+        return base + country + if (favorite && base >= SHOWS_THE_GAME) FAVORITE_BONUS else 0
+    }
 
     /** Spellings guides use that ESPN doesn't, keyed by ESPN's normalised display name. */
     private val aliases: Map<String, List<String>> = mapOf(
@@ -127,7 +138,10 @@ object SportsMatching {
         return name.dropLast(short.length).trim().takeIf { it.length >= 3 }
     }
 
-    /** Words that identify a race or tournament: its name without the generic words around it. */
+    /**
+     * Words that identify a race or tournament: its name without the generic words around it
+     * ("Rolex Shanghai Masters" → "Shanghai").
+     */
     fun eventTerms(event: SportsEvent): List<String> =
         event.name.split(' ', '-', '\'')
             .map { it.trim() }
@@ -147,7 +161,9 @@ object SportsMatching {
 
     /**
      * How sure we are that a programme titled [title] (with [extra]: its categories) shows [event].
-     * 0 means not at all.
+     * 0 means not at all. A team game needs both teams; a tennis match its two players, or the
+     * tournament with the tour or the sport named (never highlights, replays or magazines); a race
+     * its name, or the series alone.
      */
     fun score(event: SportsEvent, title: String, extra: String? = null): Int {
         val text = normalize(title)
@@ -155,42 +171,51 @@ object SportsMatching {
         if (mentionsOtherSport(event, all)) return 0
         val competition = event.competition.keywords.any { containsTerm(all, it) }
         return when (event.competition.kind) {
-            SportKind.TEAM -> {
-                when {
-                    namesBothTeams(event, text, competition) -> BOTH_TEAMS
-                    competition && containsTerm(text, event.competition.keywords.first()) -> COMPETITION_ONLY
-                    else -> 0
-                }
+            SportKind.TEAM -> if (namesBothTeams(event, text, competition)) GUIDE_GAME else 0
+            SportKind.TOURNAMENT -> when {
+                namesBothTeams(event, text, competition) -> GUIDE_GAME
+                NOT_LIVE.containsMatchIn(all) -> 0
+                eventTerms(event).any { containsTerm(text, it) } && (competition || namesTheTour(event, all)) -> GUIDE_TOURNAMENT
+                else -> 0
             }
-            SportKind.RACE, SportKind.TOURNAMENT -> {
+            SportKind.RACE -> {
                 val named = eventTerms(event).any { containsTerm(text, it) }
                 when {
-                    named && competition -> EVENT_NAME + 10
-                    named -> EVENT_NAME
-                    competition && event.competition.keywords.any { containsTerm(text, it) } -> COMPETITION_ONLY + 10
+                    named -> GUIDE_GAME
+                    competition -> COMPETITION_ONLY
                     else -> 0
                 }
             }
         }
     }
 
+    /** The tournament's own generic words ("Masters", "Open") in [normalizedText]: "Shanghai Masters". */
+    private fun namesTheTour(event: SportsEvent, normalizedText: String): Boolean =
+        event.name.split(' ', '-', '\'').map { normalize(it.trim()) }
+            .filter { it in TOUR_WORDS }
+            .any { containsTerm(normalizedText, it) }
+
     /** The terms to look for in channel names: no abbreviations, which hide in too many words. */
     fun channelSearchTerms(event: SportsEvent): List<String> =
         searchTerms(event).filter { it.length >= 4 && normalize(it) !in GENERIC_WORDS }
 
     /**
-     * How sure we are that a channel named [channelName] shows [event] whatever its guide says.
-     * Races and tournaments need their name and the competition ("F1 | Singapore GP").
+     * How sure we are that a channel named [channelName] (filed under [category]) shows [event]
+     * whatever its guide says: both teams or players in its name, a race with the series ("F1 |
+     * Singapore GP"). Never when it names another sport, or the game on another date.
      */
-    fun channelScore(event: SportsEvent, channelName: String): Int {
+    fun channelScore(event: SportsEvent, channelName: String, category: String? = null): Int {
         val text = normalize(channelName)
-        if (mentionsOtherSport(event, normalize(withoutCategoryLabels(channelName)))) return 0
+        if (isPlaceholder(channelName)) return 0
+        val all = if (category.isNullOrBlank()) text else text + " " + normalize(category)
+        if (mentionsOtherSport(event, all)) return 0
+        if (namesAnotherDate(channelName, event.startMs)) return 0
         val competition = event.competition.keywords.any { containsTerm(text, it) }
         return when (event.competition.kind) {
-            SportKind.TEAM -> if (namesBothTeams(event, text, competition)) EVENT_CHANNEL else 0
-            SportKind.RACE, SportKind.TOURNAMENT -> {
+            SportKind.TEAM, SportKind.TOURNAMENT -> if (namesBothTeams(event, text, competition)) EVENT_CHANNEL else 0
+            SportKind.RACE -> {
                 val named = eventTerms(event).any { containsTerm(text, it) }
-                if (named && competition) EVENT_NAME else 0
+                if (named && competition) EVENT_CHANNEL else 0
             }
         }
     }
@@ -215,11 +240,24 @@ object SportsMatching {
 
     /**
      * Whether [normalizedText] names a sport other than the event's ("NHL", "Premier League" for an
-     * NBA game): team names repeat across sports (Spurs, Kings, Rangers, Panthers…).
+     * NBA game), or a league of its sport the Sports tab doesn't follow (WNBA, college, the CFL,
+     * the WTA): team names repeat across sports (Spurs, Kings, Rangers, Panthers, Patriots…).
      */
     fun mentionsOtherSport(event: SportsEvent, normalizedText: String): Boolean {
         val own = sportOf(event.competition)
-        return SPORT_WORDS.any { (sport, words) -> sport != own && words.any { containsTerm(normalizedText, it) } }
+        return SPORT_WORDS.any { (sport, words) -> sport != own && words.any { containsTerm(normalizedText, it) } } ||
+            OTHER_LEAGUES[event.competition].orEmpty().any { containsTerm(normalizedText, it) }
+    }
+
+    /**
+     * Whether a provider's [category] is for another sport ("US| NHL", "SOCCER EVENTS" for an NFL
+     * game). One that also names the game's own sport ("NFL & NHL") still holds its channels.
+     */
+    fun isAnotherSportsCategory(event: SportsEvent, category: String): Boolean {
+        val text = normalize(category)
+        if (!mentionsOtherSport(event, text)) return false
+        val own = SPORT_WORDS[sportOf(event.competition)].orEmpty() + event.competition.keywords
+        return own.none { containsTerm(text, it) }
     }
 
     private fun sportOf(competition: Competition): String = when (competition) {
@@ -229,6 +267,13 @@ object SportsMatching {
         Competition.FORMULA_1 -> RACING
         Competition.ATP -> TENNIS
     }
+
+    /** The leagues of a competition's own sport that are not it. */
+    private val OTHER_LEAGUES: Map<Competition, List<String>> = mapOf(
+        Competition.NBA to listOf("wnba", "euroleague", "acb", "liga acb"),
+        Competition.NFL to listOf("cfl", "ufl", "xfl"),
+        Competition.ATP to listOf("wta", "women", "womens", "feminin", "femmes", "dames"),
+    )
 
     /**
      * Whether a channel named [channelName] is the broadcaster ESPN calls [broadcaster]: "ESPN2" is
@@ -251,6 +296,15 @@ object SportsMatching {
             false
         }
     }
+
+    /**
+     * Whether a channel named [channelName] goes by one of [competition]'s usual channels: the
+     * [broadcaster] itself ("ESPN", never "ESPN+"), or for one named after the competition, any
+     * channel with that name in it ("Ligue 1" is also "FR| LIGUE 1+ 3").
+     */
+    fun namesBroadcaster(channelName: String, broadcaster: String, competition: Competition): Boolean =
+        broadcasterMatches(channelName, broadcaster) ||
+            (competition.keywords.any { normalize(it) == normalize(broadcaster) } && containsTerm(normalize(channelName), broadcaster))
 
     /**
      * What to look for in the database for [broadcaster]: "ESPN2" also as "ESPN 2", and ESPN's
@@ -291,35 +345,110 @@ object SportsMatching {
             "ligue des champions", "europa league", "serie a", "bundesliga", "eredivisie", "mls", "uefa", "fifa",
             "epl", "efl", "fa cup", "coupe de france",
         ),
-        BASKETBALL to listOf("nba", "wnba", "basket", "basketball", "euroleague", "ncaab"),
-        AMERICAN_FOOTBALL to listOf("nfl", "ncaaf", "redzone", "super bowl"),
+        BASKETBALL to listOf("nba", "wnba", "basket", "basketball", "euroleague"),
+        AMERICAN_FOOTBALL to listOf("nfl", "redzone", "super bowl"),
+        "college" to listOf("ncaa", "ncaaf", "ncaab", "college", "high school", "cfb"),
         "hockey" to listOf("nhl", "hockey", "khl"),
         "baseball" to listOf("mlb", "baseball"),
         RACING to listOf("f1", "formula 1", "formule 1", "nascar", "motogp", "indycar"),
         TENNIS to listOf("atp", "wta", "tennis"),
+        "racket" to listOf("padel", "table tennis", "tennis de table", "ping pong"),
         "rugby" to listOf("rugby", "top 14"),
+        "handball" to listOf("handball"),
+        "volleyball" to listOf("volleyball", "volley"),
+        "futsal" to listOf("futsal"),
         "fighting" to listOf("ufc", "mma", "boxing", "boxe"),
         "golf" to listOf("golf", "pga"),
     )
 
     /**
-     * [channelName] without the provider's category labels after its first part: in "Live | Broncos
-     * vs. Chargers | all | 8K EXCLUSIVE | US: SOCCER" the "US: SOCCER" is the folder the provider
-     * filed the channel in, not the sport it shows. The first part stays, whatever it looks like:
-     * "US: NBA 03 Lakers vs Celtics" names its own sport.
+     * Playlists use fake channels as section headers ("# # # NFL # # #", "##### USA #####", "=====
+     * SPORTS =====", "★★★ PPV ★★★"). They play nothing, so they are never offered.
      */
-    fun withoutCategoryLabels(channelName: String): String {
-        val parts = channelName.split('|')
-        return (parts.take(1) + parts.drop(1).filterNot { CATEGORY_LABEL.containsMatchIn(it) }).joinToString("|")
-    }
+    fun isSeparator(channelName: String): Boolean = DIVIDER.containsMatchIn(channelName)
 
-    private val CATEGORY_LABEL = Regex("""^\s*[A-Z]{2,3}\s*:\s""")
+    private val DIVIDER = Regex("""^\s*(#|[=*~_\-–—•●★▬|]{2,})""")
 
     /**
-     * Playlists use fake channels as section headers ("# # # NFL # # #", "##### USA #####"). They
-     * play nothing, so they are never offered.
+     * An event slot with nothing in it ("US| ESPN+ 07: NO EVENT STREAMING", "PPV 12 - No Event"),
+     * kept in the playlist until a game is put on it.
      */
-    fun isSeparator(channelName: String): Boolean = channelName.trimStart().startsWith("#")
+    fun isPlaceholder(channelName: String): Boolean = PLACEHOLDER.containsMatchIn(normalize(channelName))
+
+    private val PLACEHOLDER = Regex("""\bno (live )?(event|events|stream|streaming|game|games|match)\b|\bnot (live|streaming)\b|\boff air\b""")
+
+    /** Whether [channelName] reads as one game ("Ravens vs. Falcons", "Lakers @ Celtics"). */
+    fun namesAGame(channelName: String): Boolean = GAME_TITLE.containsMatchIn(channelName)
+
+    /**
+     * Whether a guide programme titled [title] is a game ("Chiefs vs. Raiders", "Football : Nice -
+     * Monaco") but not [event]: the channel shows another one at that time.
+     */
+    fun isAnotherGame(event: SportsEvent, title: String, extra: String? = null): Boolean {
+        val all = normalize(title) + if (extra.isNullOrBlank()) "" else " " + normalize(extra)
+        val game = GAME_TITLE.containsMatchIn(title) ||
+            (DASHED_GAME.containsMatchIn(title) && SPORT_WORDS.values.flatten().plus(listOf("sport", "sports", "football")).any { containsTerm(all, it) })
+        return game && score(event, title, extra) == 0
+    }
+
+    private val DASHED_GAME = Regex("""\p{L}{3,}\s[-–/]\s\p{L}{3,}""")
+
+    /**
+     * Whether [channelName] is dated, and not on the day of the game starting at [startMs] (in
+     * the US, France or the UK, where it may already be the next day): an event channel left over
+     * from the same teams' last game ("Arsenal vs Chelsea 04/05").
+     */
+    fun namesAnotherDate(channelName: String, startMs: Long): Boolean {
+        val dates = datesIn(channelName)
+        if (dates.isEmpty()) return false
+        val instant = java.time.Instant.ofEpochMilli(startMs)
+        val days = DATE_ZONES.mapTo(HashSet()) { instant.atZone(java.time.ZoneId.of(it)).toLocalDate() }
+        return dates.none { d -> days.any { day -> d.matches(day) } }
+    }
+
+    /** A date written in a channel name; [year] is null when it has none. */
+    private data class NamedDate(val day: Int, val month: Int, val year: Int?) {
+        fun matches(date: java.time.LocalDate): Boolean =
+            day == date.dayOfMonth && month == date.monthValue && (year == null || year == date.year)
+    }
+
+    /**
+     * The dates in a channel name: "2026-10-18", "18-10-2026", "18/10", "10/18", "Oct 18", "18
+     * octobre". A day and month in numbers alone could be either way round, so both are kept.
+     */
+    private fun datesIn(channelName: String): List<NamedDate> = buildList {
+        ISO_DATE.findAll(channelName).forEach { m ->
+            val (y, mo, d) = m.destructured
+            add(NamedDate(d.toInt(), mo.toInt(), y.toInt()))
+        }
+        val withoutIso = ISO_DATE.replace(channelName, " ")
+        NUMERIC_DATE.findAll(withoutIso).forEach { m ->
+            val a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            val year = m.groupValues[3].takeIf { it.isNotEmpty() }?.toInt()?.let { if (it < 100) 2000 + it else it }
+            // "1-0" is a score and "3.5" a number: without a year, only "18/10".
+            if (year == null && m.groupValues[0].none { it == '/' }) return@forEach
+            if (a in 1..31 && b in 1..12) add(NamedDate(a, b, year))
+            if (b in 1..31 && a in 1..12) add(NamedDate(b, a, year))
+        }
+        val text = normalize(channelName)
+        MONTH_DAY.findAll(text).forEach { m -> monthOf(m.groupValues[1])?.let { add(NamedDate(m.groupValues[2].toInt(), it, null)) } }
+        DAY_MONTH.findAll(text).forEach { m -> monthOf(m.groupValues[2])?.let { add(NamedDate(m.groupValues[1].toInt(), it, null)) } }
+    }.filter { it.day in 1..31 }
+
+    private fun monthOf(word: String): Int? = MONTHS.entries.firstOrNull { (prefix, _) -> word.startsWith(prefix) }?.value
+
+    private val DATE_ZONES = listOf("UTC", "America/New_York", "America/Los_Angeles", "Europe/Paris")
+    private val ISO_DATE = Regex("""(?<!\d)(20\d\d)-(\d{1,2})-(\d{1,2})(?!\d)""")
+    private val NUMERIC_DATE = Regex("""(?<![\d.:/-])(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{4}|\d{2}))?(?![\d:/-])""")
+    private val MONTH_NAMES = "jan|feb|fev|mar|apr|avr|may|mai|jun|juin|jul|juil|aug|aou|sep|oct|nov|dec"
+    private val MONTH_DAY = Regex("""\b($MONTH_NAMES)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b""")
+    private val DAY_MONTH = Regex("""\b(\d{1,2})(?:st|nd|rd|th|er)?\s+($MONTH_NAMES)[a-z]*\b""")
+    private val MONTHS = linkedMapOf(
+        "juil" to 7, "juin" to 6, "jan" to 1, "feb" to 2, "fev" to 2, "mar" to 3, "apr" to 4, "avr" to 4,
+        "may" to 5, "mai" to 5, "jun" to 6, "jul" to 7, "aug" to 8, "aou" to 8, "sep" to 9, "oct" to 10,
+        "nov" to 11, "dec" to 12,
+    )
 
     /** [term] in [normalizedText] as a whole word (or words), accent- and case-blind. */
     fun containsTerm(normalizedText: String, term: String): Boolean {
@@ -419,6 +548,7 @@ object SportsMatching {
     private val GENERIC_SERVICES = setOf("dazn", "dazn com", "mycanal", "youtube", "now", "apple tv", "apple tv plus")
     private val SERVICE_FEED = Regex("""^(\d+|(vendredi|samedi|dimanche|lundi|mardi|mercredi|jeudi|match|multiplex|canal multiplex)\b)""")
     private val SLOT_WORDS = Regex("""\b(ppv|event|events|evento|eventos)\b""")
+    private val NOT_LIVE = Regex("""\b(highlights?|replay|rediffusion|resume|best of|magazine|mag|weekly|review|temps forts|preview)\b""")
     private val GAME_TITLE = Regex("""\s(vs?\.?|x|@)\s""", RegexOption.IGNORE_CASE)
     private val NUMBERED_SLOT = Regex("""\(\s*[^)]*\d{2,3}\s*\)\s*\|""")
 
@@ -426,6 +556,9 @@ object SportsMatching {
 
     private val GENERIC_WORDS = setOf(
         "grand", "prix", "formula", "open", "masters", "championships", "championship", "tournament",
-        "presented", "with", "cup", "rolex", "1000",
+        "presented", "with", "cup", "rolex", "1000", "atp", "tour", "finals",
     )
+
+    /** A tournament's generic words that still say which tour it is ("Shanghai Masters", "Paris Open"). */
+    private val TOUR_WORDS = setOf("masters", "open", "championships", "finals", "atp", "tennis", "cup")
 }

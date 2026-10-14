@@ -11,7 +11,10 @@ enum class SportKind {
     /** One event per weekend (a Grand Prix): matched on the event's name and the series. */
     RACE,
 
-    /** A tournament running for days: matched on its name and the tour. */
+    /**
+     * A tournament running for days, listed match by match (tennis): matched on the two players,
+     * or on the tournament's name and the tour.
+     */
     TOURNAMENT,
 }
 
@@ -19,12 +22,10 @@ enum class SportKind {
  * The competitions the Sports tab follows. [espnPath] is the league's path on ESPN's public
  * scoreboard API. [keywords] are how a guide names the competition in a programme title.
  *
- * Which channel goes first: for the US leagues ([usesEspnBroadcasts]), the one ESPN lists for the
- * game. For the others ESPN's list is the US one (beIN Sports for Ligue 1), so [homeBroadcasters]
- * go first instead: who airs the competition in its own country (Ligue 1+ in France, Sky Sports and
- * TNT Sports in England), or in France where there is no single country. [broadcasters] are other
- * channels that usually carry it — only ones a US, Canadian or French channel goes by — offered
- * only when nothing else is found.
+ * [homeBroadcasters] are offered as searches of all channels under a game: for the US leagues
+ * ([usesEspnBroadcasts]) ESPN's listing for the game instead. [broadcasters] are the channels
+ * that usually carry the competition, the last resort when nothing at all shows the game: only
+ * ones a US, Canadian or French channel goes by.
  *
  * Football's exact channel per game comes from FotMob's TV guide: France's for every competition,
  * plus [tvCountries] (FotMob's codes) for the competition's own country.
@@ -44,13 +45,13 @@ enum class Competition(
         listOf("Ligue 1"),
         // Every game, from 2026-27.
         homeBroadcasters = listOf("Ligue 1+"),
-        broadcasters = emptyList(),
+        broadcasters = listOf("Ligue 1"),
     ),
     PREMIER_LEAGUE(
         R.string.tifo_sports_premier_league, "soccer/eng.1", SportKind.TEAM,
         listOf("Premier League"),
         homeBroadcasters = listOf("Sky Sports", "TNT Sports"),
-        broadcasters = listOf("Canal+ Foot", "Canal+ Sport", "Peacock", "USA Network"),
+        broadcasters = listOf("Peacock", "USA Network", "NBC Sports", "Canal+ Foot", "Canal+ Sport"),
         tvCountries = listOf("GB"),
     ),
     LALIGA(
@@ -58,27 +59,31 @@ enum class Competition(
         listOf("LaLiga", "La Liga", "Liga"),
         homeBroadcasters = listOf("M+ LaLiga", "Movistar", "DAZN LaLiga"),
         // beIN Sports no longer has LaLiga in France; ESPN+ (ESPN's listing) carries it in the US.
-        broadcasters = listOf("ESPN Deportes"),
+        broadcasters = listOf("ESPN Deportes", "DAZN LaLiga"),
         tvCountries = listOf("ES"),
     ),
     CHAMPIONS_LEAGUE(
         R.string.tifo_sports_champions_league, "soccer/uefa.champions", SportKind.TEAM,
         listOf("Champions League", "Ligue des champions"),
         homeBroadcasters = listOf("Canal+ Foot", "Canal+ Sport"),
-        broadcasters = listOf("Canal+ Live", "Paramount+", "CBS Sports"),
+        // Paramount+ is an app: its games only show as event channels ("US| PARAMOUNT+ PPV").
+        broadcasters = listOf("CBS Sports", "Golazo", "Canal+ Sport", "Canal+ Foot", "Canal+ Live"),
+        tvCountries = listOf("GB"),
     ),
     NBA(
         R.string.tifo_sports_nba, "basketball/nba", SportKind.TEAM,
         listOf("NBA"),
         homeBroadcasters = emptyList(),
-        broadcasters = listOf("beIN Sports", "NBA TV", "ESPN"),
+        broadcasters = listOf(
+            "NBA TV", "League Pass", "ESPN", "ABC", "NBC", "Peacock", "Prime Video", "TNT", "TSN", "Sportsnet", "beIN Sports",
+        ),
         usesEspnBroadcasts = true,
     ),
     NFL(
         R.string.tifo_sports_nfl, "football/nfl", SportKind.TEAM,
         listOf("NFL"),
         homeBroadcasters = emptyList(),
-        broadcasters = listOf("beIN Sports", "NFL Network", "DAZN", "ESPN"),
+        broadcasters = listOf("NFL Network", "RedZone", "CBS", "FOX", "NBC", "ESPN", "ABC", "Prime Video", "TSN", "DAZN"),
         usesEspnBroadcasts = true,
     ),
     FORMULA_1(
@@ -91,13 +96,16 @@ enum class Competition(
         R.string.tifo_sports_atp, "tennis/atp", SportKind.TOURNAMENT,
         listOf("ATP", "Tennis"),
         homeBroadcasters = emptyList(),
-        broadcasters = listOf("Tennis Channel", "beIN Sports", "Eurosport"),
+        broadcasters = listOf("Tennis Channel", "Tennis TV", "Tennis", "ATP"),
     ),
     ;
 
     val isFootball: Boolean get() = espnPath.startsWith("soccer/")
 
-    /** The countries whose FotMob guide is read for this competition's games. */
+    /**
+     * The countries whose FotMob guide is read for this competition's games: France, plus England
+     * for the Premier League and the Champions League, Spain for LaLiga.
+     */
     val fotMobCountries: List<String> get() = if (isFootball) (listOf("FR") + tvCountries).distinct() else emptyList()
 }
 
@@ -117,7 +125,7 @@ data class SportsTeam(
 data class SportsEvent(
     val id: String,
     val competition: Competition,
-    /** "Lyon at Paris Saint-Germain", "Singapore Grand Prix", "Shanghai Masters". */
+    /** "Lyon at Paris Saint-Germain", "Singapore Grand Prix"; a tennis match's tournament, "Rolex Shanghai Masters". */
     val name: String,
     val startMs: Long,
     val state: EventState,
@@ -127,6 +135,6 @@ data class SportsEvent(
     val away: SportsTeam?,
     /** Broadcaster names ESPN lists for the event (mostly US networks). */
     val broadcasts: List<String>,
-    /** A tournament's last day; null for a single game or race. */
+    /** A tournament's last day when it is listed whole; null for a single game, match or race. */
     val endMs: Long? = null,
 )

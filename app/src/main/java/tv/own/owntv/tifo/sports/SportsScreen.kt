@@ -312,7 +312,7 @@ fun SportsScreen(
                             val open = event.id == state.selected?.id
                             item(key = eventKey(event)) {
                                 EventRow(
-                                    event, selected = open, onClick = { vm.select(event) },
+                                    event, selected = open, onClick = { vm.select(event, favoriteKeys) },
                                     isFavorite = { team -> isFavorite(event, team) },
                                     modifier = Modifier
                                         .refocusWhen(eventKey(event), refocus) { refocus = null }
@@ -824,8 +824,8 @@ private fun ChannelRow(
         StageTag(
             stringResource(
                 when {
-                    match.score >= SportsMatching.BEST_MATCH -> R.string.tifo_sports_match_best
-                    match.score > SportsMatching.BROADCASTER -> R.string.tifo_sports_match_likely
+                    match.score >= SportsMatching.SHOWS_THE_GAME -> R.string.tifo_sports_match_best
+                    match.score >= SportsMatching.LISTED_SERVICE -> R.string.tifo_sports_match_likely
                     else -> R.string.tifo_sports_match_broadcaster
                 },
             ),

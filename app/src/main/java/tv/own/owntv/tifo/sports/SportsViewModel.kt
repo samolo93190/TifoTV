@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import tv.own.owntv.core.database.OwnTVDatabase
+import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
@@ -97,13 +98,14 @@ class SportsViewModel(
     db: OwnTVDatabase,
     channelDao: ChannelDao,
     sourceDao: SourceDao,
+    categoryDao: CategoryDao,
     private val settings: SettingsRepository,
     private val profileDao: ProfileDao,
     private val recordings: RecordingManager,
 ) : ViewModel() {
 
     private val scoreboard = EspnScoreboard(http)
-    private val finder = SportsChannelFinder(db, channelDao, sourceDao, settings, http)
+    private val finder = SportsChannelFinder(db, channelDao, sourceDao, categoryDao, settings, http)
 
     private val _state = MutableStateFlow(SportsUiState())
     val state: StateFlow<SportsUiState> = _state.asStateFlow()
@@ -205,9 +207,9 @@ class SportsViewModel(
 
     /**
      * Opens [event] under its row and looks for the channels that show it; the open game again
-     * closes it.
+     * closes it. [favoriteTeams] are [SportsFavorites.keys]: a favourite team's channel goes first.
      */
-    fun select(event: SportsEvent) {
+    fun select(event: SportsEvent, favoriteTeams: Set<String> = emptySet()) {
         matchJob?.cancel()
         if (_state.value.selected?.id == event.id) {
             _state.update { it.copy(selected = null, matching = false, matches = emptyList(), broadcasters = emptyList()) }
@@ -220,10 +222,15 @@ class SportsViewModel(
             )
         }
         matchJob = viewModelScope.launch {
-            val matches = runCatching { finder.find(event, System.currentTimeMillis()) }
+            val now = System.currentTimeMillis()
+            val matches = runCatching { finder.find(event, now, favoriteTeams) }
                 .onFailure { Log.w(TAG, "channel matching failed", it) }
                 .getOrDefault(emptyList())
-            _state.update { if (it.selected?.id == event.id) it.copy(matching = false, matches = matches) else it }
+            // NBA.com's national and local channels replace ESPN's for an NBA game.
+            val broadcasters = runCatching { finder.broadcastersFor(event, now) }.getOrDefault(finder.firstBroadcasters(event))
+            _state.update {
+                if (it.selected?.id == event.id) it.copy(matching = false, matches = matches, broadcasters = broadcasters) else it
+            }
         }
     }
 
