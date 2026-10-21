@@ -31,6 +31,9 @@ From the strongest to the weakest:
 
 Small extras:
 - A **US** channel gets +50 and a **Canadian** one +49, so between two equal channels the US one comes first.
+- A network has hundreds of affiliates, so only its first few US channels are offered (rules 4 and 8),
+  but your ★ favorites of that network always are, even one named without a country (`NBC New York`),
+  and they come first between equal channels.
 
 Always ignored:
 - Empty event slots ("NO EVENT STREAMING") and list dividers.

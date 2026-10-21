@@ -14,12 +14,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import tv.own.owntv.core.database.OwnTVDatabase
 import tv.own.owntv.core.database.dao.CategoryDao
@@ -30,7 +34,11 @@ import tv.own.owntv.core.database.dao.resolveExistingProfileId
 import tv.own.owntv.core.database.entity.RecordingEntity
 import tv.own.owntv.core.model.RecordingStatus
 import tv.own.owntv.core.recording.RecordingManager
+import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.sync.ImportFinalizer
+import tv.own.owntv.core.sync.SyncContentTypes
+import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 
 data class SportsUiState(
     val loading: Boolean = true,
@@ -97,11 +105,13 @@ class SportsViewModel(
     http: OkHttpClient,
     db: OwnTVDatabase,
     channelDao: ChannelDao,
-    sourceDao: SourceDao,
+    private val sourceDao: SourceDao,
     categoryDao: CategoryDao,
     private val settings: SettingsRepository,
     private val profileDao: ProfileDao,
     private val recordings: RecordingManager,
+    private val catalogSyncScheduler: CatalogSyncScheduler,
+    private val importFinalizer: ImportFinalizer,
 ) : ViewModel() {
 
     private val scoreboard = EspnScoreboard(http)
@@ -208,14 +218,35 @@ class SportsViewModel(
      * channel goes first.
      */
     fun open(event: SportsEvent, favoriteTeams: Set<String> = emptySet()) {
-        matchJob?.cancel()
         summaryJob?.cancel()
+        openFavoriteTeams = favoriteTeams
         _state.update {
             it.copy(
-                selected = event, matching = true, matches = emptyList(), official = emptyMap(),
-                summary = null, summaryLoading = event.competition.kind == SportKind.TEAM,
+                selected = event, summary = null, summaryLoading = event.competition.kind == SportKind.TEAM,
             )
         }
+        match(event, favoriteTeams)
+        summaryJob = viewModelScope.launch {
+            while (true) {
+                val summary = summaries.load(event)
+                _state.update {
+                    if (it.selected?.id == event.id) it.copy(summary = summary ?: it.summary, summaryLoading = false) else it
+                }
+                // The scoreboard keeps the open game's state current: a finished game is read once.
+                val current = _state.value.selected?.takeIf { it.id == event.id } ?: break
+                if (current.state == EventState.FINISHED) break
+                delay(if (current.state == EventState.LIVE) LIVE_REFRESH_MS else UPCOMING_SUMMARY_MS)
+            }
+        }
+    }
+
+    /** The favourite teams the open game's page was opened with, to match it again after a sync. */
+    private var openFavoriteTeams: Set<String> = emptySet()
+
+    /** Looks for the channels that show [event], again from scratch. */
+    private fun match(event: SportsEvent, favoriteTeams: Set<String>) {
+        matchJob?.cancel()
+        _state.update { it.copy(matching = true, matches = emptyList(), official = emptyMap()) }
         matchJob = viewModelScope.launch {
             val found = runCatching { finder.find(event, System.currentTimeMillis(), favoriteTeams) }
                 .onFailure { Log.w(TAG, "channel matching failed", it) }
@@ -228,17 +259,43 @@ class SportsViewModel(
                 }
             }
         }
-        summaryJob = viewModelScope.launch {
-            while (true) {
-                val summary = summaries.load(event)
-                _state.update {
-                    if (it.selected?.id == event.id) it.copy(summary = summary ?: it.summary, summaryLoading = false) else it
-                }
-                // The scoreboard keeps the open game's state current: a finished game is read once.
-                val current = _state.value.selected?.takeIf { it.id == event.id } ?: break
-                if (current.state == EventState.FINISHED) break
-                delay(if (current.state == EventState.LIVE) LIVE_REFRESH_MS else UPCOMING_SUMMARY_MS)
+    }
+
+    /** Whether any of the profile's Live playlists is syncing, whoever started it. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val playlistSyncing: StateFlow<Boolean> = activeProfileSources(settings, sourceDao)
+        .map { it.liveSourceIds }
+        .distinctUntilChanged()
+        .flatMapLatest { ids ->
+            if (ids.isEmpty()) flowOf(false)
+            else combine(ids.map { id -> catalogSyncScheduler.observeSync(id).map { it.isActive } }) { states -> states.any { it } }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /**
+     * Syncs the profile's Live playlists from the game's page, as Settings → Playlists → Resync
+     * does, then looks for the open game's channels again once they are all done.
+     */
+    fun syncPlaylists() {
+        if (playlistSyncing.value) return
+        viewModelScope.launch {
+            val live = activeProfileSources(settings, sourceDao).first()
+            val sources = live.sources.filter { it.id in live.liveSourceIds }
+            if (sources.isEmpty()) return@launch
+            for (source in sources) {
+                val counts = importFinalizer.contentCounts(source.id)
+                catalogSyncScheduler.enqueueSync(
+                    source.id,
+                    reason = SYNC_REASON,
+                    contentTypes = SyncContentTypes.enabledOf(source),
+                    baseItemCount = counts.channels + counts.movies + counts.series,
+                )
             }
+            // Wait for the syncs to start, then to end; one that never starts gives up after a minute.
+            withTimeoutOrNull(SYNC_START_MS) { playlistSyncing.first { it } } ?: return@launch
+            playlistSyncing.first { !it }
+            _state.value.selected?.let { match(it, openFavoriteTeams) }
         }
     }
 
@@ -302,6 +359,8 @@ class SportsViewModel(
 
     private companion object {
         const val TAG = "TifoSports"
+        const val SYNC_REASON = "manual_resync"
+        const val SYNC_START_MS = 60_000L
         const val LIVE_REFRESH_MS = 30_000L
         const val IDLE_REFRESH_MS = 5 * 60_000L
 

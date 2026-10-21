@@ -1536,6 +1536,7 @@
 1	preference-key	app/src/main/java/tv/own/owntv/tifo/sports/SportsTeamsSettings.kt	:
 1	log	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	TifoSports
 1	log	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	channel matching failed
+1	protocol	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	manual_resync
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	mine
 1	log	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	scoreboard ${competition.name} failed
 1	log	app/src/main/java/tv/own/owntv/tifo/sports/SportsViewModel.kt	teams ${competition.name} failed

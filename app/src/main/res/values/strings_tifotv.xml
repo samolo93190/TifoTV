@@ -76,6 +76,8 @@
     <string name="tifo_sports_stat_duels">Duels Won</string>
     <string name="tifo_sports_stat_saves">Saves</string>
     <string name="tifo_sports_stat_fouls">Fouls Committed</string>
+    <string name="tifo_sports_sync">Sync</string>
+    <string name="tifo_sports_syncing">Syncing…</string>
     <plurals name="tifo_sports_streams">
         <item quantity="one">%1$s stream</item>
         <item quantity="other">%1$s streams</item>

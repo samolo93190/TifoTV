@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -116,6 +117,7 @@ internal fun SportsGamePage(
     val qualityVersion by qualities.version.collectAsStateWithLifecycle()
     val favoriteIds by liveVm.favoriteIds.collectAsStateWithLifecycle()
     val recordingRows by vm.recordingRows.collectAsStateWithLifecycle()
+    val playlistSyncing by vm.playlistSyncing.collectAsStateWithLifecycle()
     val qualityOf = { ch: ChannelEntity -> qualityVersion.let { qualities.qualityOf(ch) } }
 
     // The first channel listed plays as soon as it is known; the cursor on another one plays it
@@ -166,6 +168,8 @@ internal fun SportsGamePage(
                 onPlayChannel = onPlayChannel,
                 onToggleFavorite = { liveVm.toggleFavorite(it) },
                 onToggleRecording = vm::toggleRecording,
+                syncing = playlistSyncing,
+                onSync = vm::syncPlaylists,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -270,6 +274,8 @@ private fun ChannelsCard(
     onPlayChannel: (ChannelEntity) -> Unit,
     onToggleFavorite: (ChannelEntity) -> Unit,
     onToggleRecording: (SportsChannelMatch) -> Unit,
+    syncing: Boolean,
+    onSync: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The tab holding the channel the cursor comes back to, else the first one with channels.
@@ -297,7 +303,7 @@ private fun ChannelsCard(
             style = stageText(14, 800), color = StageColors.Dim,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.mpx)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.mpx), verticalAlignment = Alignment.CenterVertically) {
             ChannelTab.entries.forEachIndexed { i, t ->
                 StageTab(
                     label = stringResource(tabLabel(t)),
@@ -307,6 +313,13 @@ private fun ChannelsCard(
                     modifier = if (i == 0) Modifier.focusRequester(firstTab) else Modifier,
                 )
             }
+            Spacer(Modifier.weight(1f))
+            // Sync the playlist from here instead of Settings; the channels are matched again after.
+            StageTool(
+                text = stringResource(if (syncing) R.string.tifo_sports_syncing else R.string.tifo_sports_sync),
+                icon = OwnTVIcon.REFRESH,
+                onClick = onSync,
+            )
         }
         val rows = groups[tab].orEmpty()
         when {
