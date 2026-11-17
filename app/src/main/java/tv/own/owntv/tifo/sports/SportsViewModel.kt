@@ -27,6 +27,7 @@ import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.dao.resolveExistingProfileId
+import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.RecordingEntity
 import tv.own.owntv.core.model.RecordingStatus
 import tv.own.owntv.core.recording.RecordingManager
@@ -209,17 +210,9 @@ class SportsViewModel(
      */
     fun open(event: SportsEvent, favoriteTeams: Set<String> = emptySet()) {
         matchJob?.cancel()
-        summaryJob?.cancel()
-        _state.update {
-            it.copy(
-                selected = event, matching = true, matches = emptyList(), official = emptyMap(),
-                summary = null, summaryLoading = event.competition.kind == SportKind.TEAM,
-            )
-        }
+        show(event, found = null)
         matchJob = viewModelScope.launch {
-            val found = runCatching { finder.find(event, System.currentTimeMillis(), favoriteTeams) }
-                .onFailure { Log.w(TAG, "channel matching failed", it) }
-                .getOrNull()
+            val found = find(event, favoriteTeams)
             _state.update {
                 if (it.selected?.id == event.id) {
                     it.copy(matching = false, matches = found?.matches.orEmpty(), official = found?.official.orEmpty())
@@ -227,6 +220,42 @@ class SportsViewModel(
                     it
                 }
             }
+        }
+    }
+
+    /**
+     * The player's switch to another live game: looks for [event]'s channels first, and only if one
+     * shows it makes it the open game and hands [onBest] the channel Watch would play. Otherwise
+     * the open game stays as it was and [onNone] is called.
+     */
+    fun switchTo(event: SportsEvent, favoriteTeams: Set<String>, onBest: (ChannelEntity) -> Unit, onNone: () -> Unit) {
+        matchJob?.cancel()
+        matchJob = viewModelScope.launch {
+            val found = find(event, favoriteTeams)
+            val best = found?.matches?.let { SportsChannelGroups.first(SportsChannelGroups.group(it))?.best?.channel }
+            if (found == null || best == null) {
+                onNone()
+                return@launch
+            }
+            show(event, found)
+            onBest(best)
+        }
+    }
+
+    private suspend fun find(event: SportsEvent, favoriteTeams: Set<String>): SportsMatches? =
+        runCatching { finder.find(event, System.currentTimeMillis(), favoriteTeams) }
+            .onFailure { Log.w(TAG, "channel matching failed", it) }
+            .getOrNull()
+
+    /** Makes [event] the open game, with its channels when already [found], and reads ESPN's summary of it. */
+    private fun show(event: SportsEvent, found: SportsMatches?) {
+        summaryJob?.cancel()
+        _state.update {
+            it.copy(
+                selected = event, matching = found == null,
+                matches = found?.matches.orEmpty(), official = found?.official.orEmpty(),
+                summary = null, summaryLoading = event.competition.kind == SportKind.TEAM,
+            )
         }
         summaryJob = viewModelScope.launch {
             while (true) {

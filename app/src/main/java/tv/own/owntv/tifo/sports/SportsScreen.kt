@@ -329,7 +329,7 @@ private fun GameRow(
  * "PSG vs Lyon" and its league or its state.
  */
 @Composable
-private fun GameCard(
+internal fun GameCard(
     event: SportsEvent,
     showLeague: Boolean,
     isFavorite: (SportsTeam?) -> Boolean,

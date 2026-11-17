@@ -534,11 +534,29 @@ private fun GameInfo(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.mpx)) {
-        ScoreHeader(event)
+    GameStatsPanel(event, state, modifier) {
         if (state.official.isNotEmpty() || summary?.venue != null) {
             OfficialChannels(state.official, summary, refocus, onRefocused, onSearchChannels)
         }
+    }
+}
+
+/**
+ * The score, then ESPN's details in tabs; [belowScore] goes between them (the game page's official
+ * channels). Also the player's stats panel, where [firstTab] takes the cursor when it opens.
+ */
+@Composable
+internal fun GameStatsPanel(
+    event: SportsEvent,
+    state: SportsUiState,
+    modifier: Modifier = Modifier,
+    firstTab: FocusRequester? = null,
+    belowScore: @Composable ColumnScope.() -> Unit = {},
+) {
+    val summary = state.summary
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.mpx)) {
+        ScoreHeader(event)
+        belowScore()
         val sections = summary?.let { s ->
             buildList {
                 if (s.timeline.isNotEmpty()) add(InfoSection.TIMELINE)
@@ -561,8 +579,11 @@ private fun GameInfo(
                 var open by remember(event.id) { mutableStateOf(preferred) }
                 if (open !in sections) open = preferred
                 Row(horizontalArrangement = Arrangement.spacedBy(6.mpx)) {
-                    sections.forEach { s ->
-                        StageTab(label = stringResource(sectionLabel(s, event)), count = "", selected = s == open, onClick = { open = s })
+                    sections.forEachIndexed { i, s ->
+                        StageTab(
+                            label = stringResource(sectionLabel(s, event)), count = "", selected = s == open, onClick = { open = s },
+                            modifier = if (i == 0 && firstTab != null) Modifier.focusRequester(firstTab) else Modifier,
+                        )
                     }
                 }
                 ScrollReader(Modifier.weight(1f).fillMaxWidth()) {

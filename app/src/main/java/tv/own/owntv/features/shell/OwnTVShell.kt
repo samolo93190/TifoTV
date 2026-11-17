@@ -321,6 +321,15 @@ fun OwnTVShell(
     var showChannelList by remember { mutableStateOf(false) }
     // In-player watch-history list (Right while controls hidden, live only).
     var showHistoryList by remember { mutableStateOf(false) }
+    // TifoTV — a channel started from a game's Sports page: while it plays, Left lists the game's
+    // channels, Right its score and stats, Down the live games, and CH± step through its channels.
+    // Any other tune, or leaving the player, ends it.
+    val sportsVm = org.koin.androidx.compose.koinViewModel<tv.own.owntv.tifo.sports.SportsViewModel>()
+    val sportsState by sportsVm.state.collectAsStateWithLifecycle()
+    var sportsSession by remember { mutableStateOf(false) }
+    var showGameChannels by remember { mutableStateOf(false) }
+    var showGameStats by remember { mutableStateOf(false) }
+    var showGamesMenu by remember { mutableStateOf(false) }
     // Multiview: the grid, while it is up, and which tile is waiting for a channel to be picked.
     val multiviewEnabled by settingsRepo.multiviewEnabled.collectAsStateWithLifecycle(false)
     val recordWatchingEnabled by settingsRepo.recordWhatImWatching.collectAsStateWithLifecycle(false)
@@ -514,6 +523,7 @@ fun OwnTVShell(
     fun openFullscreen(source: MainSection = selectedSection) {
         restoreFocus = false
         zapSource = source
+        sportsSession = false
         homeVm.stopPreview()
         // Only Live TV promotes a channel to the ExoPlayer engine. Movies/Series/Search/EPG/Downloads all
         // play on mpv — clear any stale live-on-ExoPlayer flag so the shell renders mpv, not the old channel.
@@ -546,6 +556,10 @@ fun OwnTVShell(
         playerMode = PlayerMode.NONE
         showChannelList = false
         showHistoryList = false
+        sportsSession = false
+        showGameChannels = false
+        showGameStats = false
+        showGamesMenu = false
         liveVm.hideCategoryBrowser()
         liveVm.onFullscreenExited() // no longer full-screen on ExoPlayer → let the preview re-take the engine
         player.stop()
@@ -1080,6 +1094,7 @@ fun OwnTVShell(
                     restoreFocus = false
                     liveVm.watchFromGuide(ch)
                     zapSource = MainSection.LIVE_TV
+                    sportsSession = false
                     homeVm.stopPreview()
                     // Live TV set to play externally → the channel went to another app;
                     // don't mount the fullscreen player over it.
@@ -1089,6 +1104,7 @@ fun OwnTVShell(
                     restoreFocus = false
                     liveVm.playCatchupProgramme(ch, prog)
                     zapSource = MainSection.LIVE_TV
+                    sportsSession = false
                     homeVm.stopPreview()
                     if (playerMode != PlayerMode.MINI) playerMode = PlayerMode.FULLSCREEN
                 }
@@ -1127,7 +1143,10 @@ fun OwnTVShell(
                 ) {
                     when {
                         sportsOpen -> tv.own.owntv.tifo.sports.SportsScreen(
-                            onPlayChannel = { ch -> guidePlayChannel(ch, emptyList()) },
+                            onPlayChannel = { ch ->
+                                guidePlayChannel(ch, emptyList())
+                                sportsSession = true
+                            },
                             previewEnabled = playerMode == PlayerMode.NONE,
                             contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
                             onSearchChannels = { query ->
@@ -1623,8 +1642,6 @@ fun OwnTVShell(
                 // derive this callback from the active engine or current list readiness: both legitimately
                 // go through short false/empty windows during startup and ExoPlayer/mpv handoffs. Browse
                 // panels keep their configurable paging because PlayerHud exists only in full-screen here.
-                val zap: ((Int) -> Unit)? =
-                    if (zapSource == MainSection.LIVE_TV) liveVm::zap else null
                 // Live rewind controls apply to a Live-TV channel (live OR its timeshift archive).
                 val isLiveChannel = zapSource == MainSection.LIVE_TV
                 // ...but NOT to a catch-up archive programme. That's VOD-style playback of a past
@@ -1632,6 +1649,20 @@ fun OwnTVShell(
                 // position on the other engine) rather than Live TV's compatibility toggle, which would
                 // re-tune the live stream and jump the user to the current programme.
                 val isTunedLive = isLiveChannel && !catchupActive
+                // TifoTV — a game started from its page: its channels, stats and the live games take the
+                // place of the category list, the history and the category zap.
+                val gameEvent = sportsState.selected
+                val gameChannels = sportsState.matches.map { it.channel }
+                val gameMode = sportsSession && isTunedLive && gameEvent != null && gameChannels.isNotEmpty()
+                val zap: ((Int) -> Unit)? = when {
+                    gameMode -> { delta ->
+                        val at = gameChannels.indexOfFirst { it.id == previewChannel?.id }
+                        val next = if (at < 0) 0 else Math.floorMod(at + delta, gameChannels.size)
+                        liveVm.ensurePlaying(gameChannels[next])
+                    }
+                    zapSource == MainSection.LIVE_TV -> liveVm::zap
+                    else -> null
+                }
                 PlayerHud(
                     player = if (liveOnExo) liveVm.previewEngine else mpvEngine, // HUD drives the active engine
                     onBack = exitPlayer,
@@ -1639,10 +1670,16 @@ fun OwnTVShell(
                     onAudioMode = toAudioMode,
                     // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                     // its hide/error focus grabs can't yank D-pad focus off the overlay.
-                    inert = showChannelList || showHistoryList || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker,
+                    inert = showChannelList || showHistoryList || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker ||
+                        showGameChannels || showGameStats || showGamesMenu,
                     onChannelUp = zap?.let { z -> { z(-1) } },
                     onChannelDown = zap?.let { z -> { z(1) } },
-                    onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
+                    onOpenChannelList = when {
+                        gameMode -> { { showGameChannels = true } }
+                        isTunedLive && liveCanZap -> { { showChannelList = true } }
+                        else -> null
+                    },
+                    onOpenGamesMenu = if (gameMode) { { showGamesMenu = true } } else null,
                     // Live channels only, and only once Multiview is switched on: the channel on screen
                     // becomes tile 1 and the grid takes over. Everything it needs is already tuned.
                     onMultiview = if (multiviewEnabled && isTunedLive && previewChannel != null) {
@@ -1658,7 +1695,11 @@ fun OwnTVShell(
                         ?.takeIf { recordWatchingEnabled && isTunedLive }
                         ?.let { channel -> { liveVm.togglePlayerRecording(channel) } },
                     recordingThis = playerRecording != null,
-                    onOpenHistoryList = if (isTunedLive) { { showHistoryList = true } } else null,
+                    onOpenHistoryList = when {
+                        gameMode -> { { showGameStats = true } }
+                        isTunedLive -> { { showHistoryList = true } }
+                        else -> null
+                    },
                     onRewindLive = if (isTunedLive && canRewindLive) liveVm::rewindLive else null,
                     onForwardLive = if (isTunedLive) liveVm::forwardLive else null,
                     onGoToLive = if (isTunedLive) liveVm::goToLive else null,
@@ -1861,6 +1902,56 @@ fun OwnTVShell(
                         onDismiss = { showHistoryList = false },
                         modifier = Modifier.fillMaxSize(),
                     )
+                }
+                // TifoTV — the game's own menus. The Sports tab isn't drawn under the full-screen player,
+                // so the scores are kept fresh from here while a game plays.
+                LaunchedEffect(gameMode) { if (gameMode) sportsVm.refreshWhileVisible() }
+                if (gameMode && gameEvent != null) {
+                    // Left — the game's channels, strongest first.
+                    if (showGameChannels) {
+                        tv.own.owntv.features.shell.components.ChannelListOverlay(
+                            channels = gameChannels,
+                            currentId = previewChannel?.id,
+                            nowPlaying = sportsState.matches.mapNotNull { m ->
+                                (m.programmeTitle ?: m.category)?.takeIf { it.isNotBlank() }?.let { m.channel.id to it }
+                            }.toMap(),
+                            title = gameEvent.name,
+                            providerNames = liveProviderNames,
+                            showNumbers = false,
+                            onSelect = { liveVm.ensurePlaying(it); showGameChannels = false },
+                            onDismiss = { showGameChannels = false },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    // Right — the score and ESPN's details.
+                    if (showGameStats) {
+                        tv.own.owntv.tifo.sports.SportsPlayerStats(
+                            event = gameEvent,
+                            state = sportsState,
+                            onDismiss = { showGameStats = false },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    // Down — the games live now; picking one plays its best channel.
+                    if (showGamesMenu) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val noGameChannels = stringResource(R.string.tifo_sports_no_channels)
+                        tv.own.owntv.tifo.sports.SportsPlayerGames(
+                            games = sportsState.events.filter { it.state == tv.own.owntv.tifo.sports.EventState.LIVE },
+                            currentId = gameEvent.id,
+                            onPick = { event ->
+                                showGamesMenu = false
+                                sportsVm.switchTo(
+                                    event,
+                                    favoriteTeams = tv.own.owntv.tifo.sports.SportsFavorites.get(context).keys.value,
+                                    onBest = { liveVm.ensurePlaying(it) },
+                                    onNone = { localSubToast.show(noGameChannels) },
+                                )
+                            },
+                            onDismiss = { showGamesMenu = false },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             } else {
                 MiniPlayer(

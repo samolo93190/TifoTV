@@ -153,6 +153,9 @@ fun PlayerHud(
     onChannelDown: (() -> Unit)? = null,
     // Live: open the channel-list overlay (Left while the controls are hidden). Null = not a live channel.
     onOpenChannelList: (() -> Unit)? = null,
+    // TifoTV — a game started from its Sports page: Down (controls hidden) opens the live games in
+    // place of zapping down. Null = Down zaps as usual.
+    onOpenGamesMenu: (() -> Unit)? = null,
     // Live: open the watch-history list (Right while the controls are hidden) — jump straight back to a
     // recent channel without leaving full-screen. Null = not a live channel.
     onOpenHistoryList: (() -> Unit)? = null,
@@ -549,6 +552,7 @@ fun PlayerHud(
                 // intended: CH-/Down from the first channel lands on the last, and vice versa.
                 canZap && e.key == Key.MediaNext -> { zap(1); true }
                 canZap && e.key == Key.MediaPrevious -> { zap(-1); true }
+                onOpenGamesMenu != null && !controlsVisible && e.key == Key.DirectionDown -> { onOpenGamesMenu(); true }
                 canZap && isLive && !controlsVisible && e.key == Key.DirectionUp -> { zap(1); true }
                 canZap && isLive && !controlsVisible && e.key == Key.DirectionDown -> { zap(-1); true }
                 // N6 — Left/Right with the controls hidden: reveal them on the timeline and take the first
