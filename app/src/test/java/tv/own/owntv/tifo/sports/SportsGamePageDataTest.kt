@@ -12,9 +12,9 @@ class SportsGamePageDataTest {
 
     private var nextId = 1L
 
-    private fun match(name: String, base: Int, category: String? = null, favorite: Boolean = false): SportsChannelMatch {
+    private fun match(name: String, base: Int, category: String? = null, favorite: Boolean = false, network: Boolean = false): SportsChannelMatch {
         val channel = ChannelEntity(id = nextId++, sourceId = 1, categoryId = 1, name = name, streamUrl = "http://x/$name", remoteId = name)
-        return SportsChannelMatch(channel, SportsMatching.finalScore(base, name, favorite, category), null, null, null, favorite, base, category)
+        return SportsChannelMatch(channel, SportsMatching.finalScore(base, name, favorite, category), null, null, null, favorite, base, category, network)
     }
 
     @Test
@@ -65,6 +65,43 @@ class SportsGamePageDataTest {
         ).getValue(ChannelTab.EVENT)
         assertEquals(listOf("US", "US", "CA", null, "AR"), events.map { it.country })
         assertEquals(listOf("US| SOCCER PPV", "USA| PPV EVENTS", "CA| SOCCER PPV", "FINLAND MTV PPV VIP", "AR| FOOTBALL PPV"), events.map { it.title })
+    }
+
+    @Test
+    fun aNetworksAffiliatesMergeIntoOneRowPerCategory() {
+        val groups = SportsChannelGroups.group(
+            listOf(
+                match("US| NBC 11 SAN FRANCISCO", SportsMatching.NBA_LISTED + 3 * SportsMatching.NBA_RANK, "US| NBC NETWORK", favorite = true, network = true),
+                match("US| NBC 7 RENO NV (KRNV)", SportsMatching.NBA_LISTED + 3 * SportsMatching.NBA_RANK, "US| NBC NETWORK", network = true),
+                match("US| NBC 36 AUSTIN (KXAN)", SportsMatching.NBA_LISTED + 3 * SportsMatching.NBA_RANK, "US| NBC NETWORK", network = true),
+                // A real listed channel in its own right stays a row of its own.
+                match("US| TNT", SportsMatching.GUIDE_GAME, "US| ENTERTAINMENT"),
+            ),
+        )
+        val tv = groups.getValue(ChannelTab.TV)
+        assertEquals(listOf("NBC NETWORK", "TNT"), tv.map { it.title })
+        val nbc = tv.first { it.title == "NBC NETWORK" }
+        assertEquals(3, nbc.streams.size)
+        // The favourite affiliate leads the merged row and marks it a favourite.
+        assertTrue(nbc.favorite)
+        assertEquals("US| NBC 11 SAN FRANCISCO", nbc.best.channel.name)
+    }
+
+    @Test
+    fun theNbaPackageFeedBeatsTheBroadcast() {
+        val groups = SportsChannelGroups.group(
+            listOf(
+                match("US| NBA 03: Spurs vs Pistons", SportsMatching.NBA_PACKAGE, "US| NBA PACKAGE"),
+                match("US| NBC", SportsMatching.NBA_LISTED + 3 * SportsMatching.NBA_RANK, "US| NBC NETWORK", network = true),
+            ),
+        )
+        // The package feed (850) outscores the national broadcast (780).
+        val packageRow = groups.getValue(ChannelTab.EVENT).single()
+        assertEquals("US| NBA PACKAGE", packageRow.title)
+        assertTrue(packageRow.best.score > groups.getValue(ChannelTab.TV).single().best.score)
+        // So it is what the page opens on and Watch plays, though it sits in another tab.
+        assertEquals(ChannelTab.EVENT, SportsChannelGroups.firstTab(groups))
+        assertEquals("US| NBA PACKAGE", SportsChannelGroups.first(groups)?.title)
     }
 
     @Test

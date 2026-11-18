@@ -1166,13 +1166,14 @@
 1	regex	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	[^\\p{L}\\p{N}]+
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	name LIKE ?
 1	sql	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelFinder.kt	title LIKE ?
-1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	:
+2	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	:
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	ES
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	FR
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	UK
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	US
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	ch:
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	event:
+1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsChannelGroups.kt	netcat:
 1	preference-key	app/src/main/java/tv/own/owntv/tifo/sports/SportsDisplay.kt	hide_scores
 1	preference-key	app/src/main/java/tv/own/owntv/tifo/sports/SportsDisplay.kt	tifo_sports_display
 1	preference-key	app/src/main/java/tv/own/owntv/tifo/sports/SportsFavorites.kt	:
@@ -1404,6 +1405,7 @@
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	ncaa
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	ncaab
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	ncaaf
+1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	network
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	newcastle united
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	nfl
 1	technical	app/src/main/java/tv/own/owntv/tifo/sports/SportsMatching.kt	nfl net

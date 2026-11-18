@@ -53,8 +53,9 @@ object SportsChannelGroups {
             val name = match.channel.name
             val category = match.category?.trim()?.takeIf { it.isNotEmpty() }
             // An event slot is often named after the game alone ("AS Roma Real Madrid @ Oct 14
-            // :MTV FI 09"): its category says the country ("US| SOCCER PPV").
-            val event = match.base == SportsMatching.EVENT_CHANNEL
+            // :MTV FI 09"): its category says the country ("US| SOCCER PPV"). The NBA's own package
+            // feed is such a channel too, just scored higher ([SportsMatching.NBA_PACKAGE]).
+            val event = match.base == SportsMatching.EVENT_CHANNEL || match.base == SportsMatching.NBA_PACKAGE
             val country = if (event) {
                 category?.let(SportsMatching::countryOf) ?: SportsMatching.countryOf(name)
             } else {
@@ -64,6 +65,12 @@ object SportsChannelGroups {
             if (event) {
                 key = "event:" + (category ?: name).lowercase(Locale.ROOT)
                 meta.getOrPut(key) { Triple(ChannelTab.EVENT, country, category ?: name) }
+            } else if (match.network && category != null) {
+                // A national network's local affiliates ("NBC 11 San Francisco", "NBC 7 Reno") all
+                // carry the one game: merged into a single row for their category ("NBC Network").
+                val tab = if (country in TV_COUNTRIES) ChannelTab.TV else ChannelTab.WORLD
+                key = "netcat:" + country.orEmpty() + ":" + category.lowercase(Locale.ROOT)
+                meta.getOrPut(key) { Triple(tab, country, SportsMatching.displayName(category)) }
             } else {
                 val tab = if (country in TV_COUNTRIES) ChannelTab.TV else ChannelTab.WORLD
                 val title = SportsMatching.displayName(name)
@@ -90,12 +97,16 @@ object SportsChannelGroups {
         }
     }
 
-    /** The tab a game page opens on: the first one with channels. */
+    /** The tab a game page opens on: the one holding the best channel. */
     fun firstTab(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelTab =
-        ChannelTab.entries.firstOrNull { groups[it].orEmpty().isNotEmpty() } ?: ChannelTab.TV
+        first(groups)?.tab ?: ChannelTab.TV
 
-    /** The row a game page lists first, whose best stream it previews and Watch would play. */
-    fun first(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelGroup? = groups[firstTab(groups)]?.firstOrNull()
+    /**
+     * The row a game page lists first, whose best stream it previews and Watch would play: the
+     * best-scored of every tab (the NBA's package feed beats the broadcast, even in another tab).
+     */
+    fun first(groups: Map<ChannelTab, List<ChannelGroup>>): ChannelGroup? =
+        groups.values.flatten().maxByOrNull { it.best.score }
 
     /** France, the US, the UK and Spain first, then the others alphabetically, no country last. */
     private fun countryRank(country: String?): Int = when (country) {

@@ -17,6 +17,12 @@ object SportsMatching {
     /** One of the user's favourite channels (★) that shows this game ([SHOWS_THE_GAME] or more). */
     const val FAVORITE_BONUS = 3000
 
+    /**
+     * An NBA game's own feed in the league's package, named after the game ("US| NBA 03: Spurs vs
+     * Pistons"): the direct game stream, offered and played above even the national broadcast.
+     */
+    const val NBA_PACKAGE = 800
+
     /** A channel named after the game itself ("US| SOCCER PPV 41: Paris SG vs Lyon"). */
     const val EVENT_CHANNEL = 600
 
@@ -33,9 +39,9 @@ object SportsMatching {
     const val SHOWS_THE_GAME = GUIDE_TOURNAMENT
 
     /**
-     * NBA.com's channel for the game, above event channels so Watch plays the official one:
-     * national first, then the favourite team's local channel, the home team's, the away team's
-     * ([NBA_RANK] apart).
+     * NBA.com's channel for the game, above generic event channels so Watch plays the official one
+     * (but below the league's own game feed, [NBA_PACKAGE]): national first, then the favourite
+     * team's local channel, the home team's, the away team's ([NBA_RANK] apart).
      */
     const val NBA_LISTED = 700
     const val NBA_RANK = 10
@@ -297,6 +303,20 @@ object SportsMatching {
             }
             false
         }
+    }
+
+    /**
+     * Whether a channel named [channelName] (filed under [category]) is one of the network
+     * [broadcaster]'s national channels, which all carry a national broadcast game: the network's
+     * own feed ("US| NBC", "US| NBC HD"), or a channel the provider groups in the network's own
+     * category ("US| NBC NETWORK" holds NBC's local affiliates — "NBC New York", "NBC Bay Area").
+     * Not a channel that only shares the name from another category: "NBC Dateline" under
+     * Entertainment, "NBC Sports Chicago" the regional sports network.
+     */
+    fun isNetworkChannel(channelName: String, broadcaster: String, category: String?): Boolean {
+        if (!broadcasterMatches(channelName, broadcaster)) return false
+        if (tvKey(channelName) == tvKey(broadcaster)) return true
+        return category != null && containsTerm(normalize(category), "network") && broadcasterMatches(category, broadcaster)
     }
 
     /**

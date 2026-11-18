@@ -233,6 +233,22 @@ class SportsMatchingTest {
     }
 
     @Test
+    fun aNetworkBringsOnlyItsOwnNationalChannels() {
+        // The network's own feed, whatever its category.
+        assertTrue(SportsMatching.isNetworkChannel("US| NBC", "NBC", category = null))
+        assertTrue(SportsMatching.isNetworkChannel("US| NBC HD", "NBC", category = "US| ENTERTAINMENT"))
+        // A local affiliate the provider files under the network's category carries the national game.
+        assertTrue(SportsMatching.isNetworkChannel("US| NBC New York", "NBC", category = "US| NBC NETWORK"))
+        assertTrue(SportsMatching.isNetworkChannel("US| NBC Bay Area", "NBC", category = "US| NBC NETWORK"))
+        // A channel that only shares the name, from another category, does not.
+        assertTrue(!SportsMatching.isNetworkChannel("US| NBC Dateline", "NBC", category = "US| ENTERTAINMENT"))
+        assertTrue(!SportsMatching.isNetworkChannel("US| NBC Sports Chicago", "NBC", category = "US| REGIONAL SPORTS"))
+        assertTrue(!SportsMatching.isNetworkChannel("US| NBC New York", "NBC", category = null))
+        // Never a different network.
+        assertTrue(!SportsMatching.isNetworkChannel("US| CNBC", "NBC", category = "US| NBC NETWORK"))
+    }
+
+    @Test
     fun onlyTheUsLeaguesGoByEspnsListing() {
         val espn = Competition.entries.filter { it.usesEspnBroadcasts }.toSet()
         assertEquals(setOf(Competition.NBA, Competition.NFL), espn)

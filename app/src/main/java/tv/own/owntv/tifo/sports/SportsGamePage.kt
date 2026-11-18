@@ -3,6 +3,7 @@ package tv.own.owntv.tifo.sports
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -128,6 +129,19 @@ internal fun SportsGamePage(
     LaunchedEffect(groups) {
         if (previewed == null) previewed = SportsChannelGroups.first(groups)?.best
     }
+    // A freshly opened page (not one coming back from the player or a search) lands on the preview,
+    // so OK plays the best channel full screen without going down to the list. Claimed once, after
+    // the preview has a channel (so its tile is clickable), so moving through the list never pulls
+    // the focus back up.
+    val firstGroup = remember(groups) { SportsChannelGroups.first(groups) }
+    val previewFocus = remember { FocusRequester() }
+    var previewClaimedFocus by remember(event.id) { mutableStateOf(false) }
+    LaunchedEffect(event.id, previewed) {
+        if (refocus != null || previewed == null || previewClaimedFocus) return@LaunchedEffect
+        previewClaimedFocus = true
+        withFrameNanos { }
+        runCatching { previewFocus.requestFocus() }
+    }
     val livePreviewSetting by liveVm.livePreviewEnabled.collectAsStateWithLifecycle()
     val effectivePreview = previewEnabled && livePreviewSetting
     LaunchedEffect(previewed?.channel?.id, effectivePreview) {
@@ -154,6 +168,8 @@ internal fun SportsGamePage(
                 quality = previewed?.channel?.let(qualityOf),
                 previewEngine = liveVm.previewEngine,
                 showVideo = effectivePreview,
+                onClick = { previewed?.channel?.let(onPlayChannel) },
+                focusRequester = previewFocus,
             )
             ChannelsCard(
                 event = event,
@@ -163,6 +179,8 @@ internal fun SportsGamePage(
                 qualityOf = qualityOf,
                 recordingFor = { match -> vm.recordingFor(match, recordingRows) },
                 refocus = refocus,
+                // The preview claims the opening focus when there is a channel to play.
+                claimInitialFocus = firstGroup == null,
                 onRefocused = onRefocused,
                 onFocusChannel = { previewed = it },
                 onPlayChannel = onPlayChannel,
@@ -195,6 +213,8 @@ private fun PreviewCard(
     quality: StreamQuality?,
     previewEngine: LivePreviewEngine,
     showVideo: Boolean,
+    onClick: () -> Unit,
+    focusRequester: FocusRequester,
 ) {
     val channel = match?.channel
     val previewState by previewEngine.state.collectAsStateWithLifecycle()
@@ -202,15 +222,23 @@ private fun PreviewCard(
     val playing = showVideo && channel != null &&
         previewState != LivePreviewEngine.State.ERROR &&
         previewState != LivePreviewEngine.State.IDLE
+    val accent = stageAccent
+    var focused by remember { mutableStateOf(false) }
     val r = 26.mpx
     Column(verticalArrangement = Arrangement.spacedBy(10.mpx)) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
-                .drawBehind { drawBoxShadow(Color.Black.copy(alpha = 0.55f), 60.mpx.toPx(), r.toPx(), dy = 20.mpx.toPx()) }
+                .drawBehind {
+                    val glow = if (focused) accent.accent.copy(alpha = 0.45f) else Color.Black.copy(alpha = 0.55f)
+                    drawBoxShadow(glow, 60.mpx.toPx(), r.toPx(), dy = 20.mpx.toPx())
+                }
                 .clip(RoundedCornerShape(r))
-                .background(Color.Black),
+                .background(Color.Black)
+                .focusRequester(focusRequester)
+                .onFocusChanged { focused = it.isFocused }
+                .clickable(enabled = channel != null, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             if (channel != null) {
@@ -220,7 +248,12 @@ private fun PreviewCard(
             }
             if (playing) ExoPreviewSurface(engine = previewEngine, modifier = Modifier.fillMaxSize())
             if (playing && previewState == LivePreviewEngine.State.LOADING) OwnTVSpinner(sizeDp = 24)
-            Box(Modifier.fillMaxSize().drawBehind { drawInnerRing(Color.White.copy(alpha = 0.08f), 1.mpx.toPx(), r.toPx()) })
+            Box(
+                Modifier.fillMaxSize().drawBehind {
+                    val ring = if (focused) accent.focus else Color.White.copy(alpha = 0.08f)
+                    drawInnerRing(ring, (if (focused) 3.mpx else 1.mpx).toPx(), r.toPx())
+                },
+            )
             if (channel != null) {
                 Box(Modifier.align(Alignment.TopStart).padding(start = 18.mpx, top = 16.mpx)) { StageLiveBadge(stringResource(R.string.player_live)) }
                 if (playing && streamChips.isNotEmpty()) {
@@ -269,6 +302,7 @@ private fun ChannelsCard(
     qualityOf: (ChannelEntity) -> StreamQuality?,
     recordingFor: (SportsChannelMatch) -> RecordingEntity?,
     refocus: String?,
+    claimInitialFocus: Boolean,
     onRefocused: () -> Unit,
     onFocusChannel: (SportsChannelMatch) -> Unit,
     onPlayChannel: (ChannelEntity) -> Unit,
@@ -284,9 +318,10 @@ private fun ChannelsCard(
     var tab by remember(event.id, state.matching) { mutableStateOf(returning ?: firstFull) }
     var expanded by remember(event.id) { mutableStateOf(emptySet<String>()) }
     val firstTab = remember { FocusRequester() }
-    // A page just opened (not one coming back from the player or a search) starts on the channels.
+    // A page just opened starts on the channels only when the preview did not claim the focus (no
+    // channel to play), and never when coming back from the player or a search.
     LaunchedEffect(event.id) {
-        if (refocus != null) return@LaunchedEffect
+        if (refocus != null || !claimInitialFocus) return@LaunchedEffect
         withFrameNanos { }
         runCatching { firstTab.requestFocus() }
     }
