@@ -28,6 +28,8 @@ data class SportsChannelMatch(
     val base: Int = score,
     /** The provider's category it is filed under ("US| PARAMOUNT+ PPV"). */
     val category: String? = null,
+    /** A national network's channel (NBC's local affiliates): merged by category into one row. */
+    val network: Boolean = false,
 )
 
 /**
@@ -66,7 +68,7 @@ class SportsChannelFinder(
     private val fotMob = FotMobTv(http)
     private val nba = NbaTv(http)
 
-    private class Found(val channel: ChannelEntity, val base: Int, val programme: Programme?, val category: String?)
+    private class Found(val channel: ChannelEntity, val base: Int, val programme: Programme?, val category: String?, val network: Boolean)
 
     /** [favoriteTeams] are [SportsFavorites.keys]: a favourite team's local NBA channel goes first. */
     suspend fun find(event: SportsEvent, nowMs: Long, favoriteTeams: Set<String> = emptySet()): SportsMatches = withContext(Dispatchers.IO) {
@@ -84,6 +86,7 @@ class SportsChannelFinder(
         }
 
         val best = HashMap<Long, Found>()
+        val favoriteIds = favoriteChannels(sourceIds).mapTo(HashSet()) { it.id }
 
         /**
          * Keeps [channel] at [base] points unless it can't show the game: a separator, an empty
@@ -91,7 +94,7 @@ class SportsChannelFinder(
          * [guess]es (rules 7–9) only come from the countries a name can be trusted in, and never
          * from event slots.
          */
-        suspend fun offer(channel: ChannelEntity, base: Int, programme: Programme? = null, guess: Boolean = false) {
+        suspend fun offer(channel: ChannelEntity, base: Int, programme: Programme? = null, guess: Boolean = false, network: Boolean = false) {
             val name = channel.name
             if (SportsMatching.isSeparator(name) || SportsMatching.isPlaceholder(name)) return
             if (SportsMatching.mentionsOtherSport(event, SportsMatching.normalize(name))) return
@@ -100,21 +103,26 @@ class SportsChannelFinder(
             if (base != SportsMatching.EVENT_CHANNEL && SportsMatching.namesAGame(name) &&
                 SportsMatching.channelScore(event, name, category) == 0
             ) return
-            if (guess && (SportsMatching.isEventSlot(name) || SportsMatching.countryOf(name) !in SportsMatching.GUESS_COUNTRIES)) return
+            if (guess && SportsMatching.isEventSlot(name)) return
+            // A favourite's country is the user's word for it, even when its name has none.
+            if (guess && SportsMatching.countryOf(name) !in SportsMatching.GUESS_COUNTRIES && channel.id !in favoriteIds) return
             val old = best[channel.id]
             if (old == null || base > old.base) {
-                best[channel.id] = Found(channel, base, programme ?: old?.programme, category)
+                best[channel.id] = Found(channel, base, programme ?: old?.programme, category, network || (old?.network ?: false))
             }
         }
 
         // 1. Channels named after the game, which providers often leave without a guide.
         // Wide: a city ("Los Angeles", "Denver") also names hundreds of local stations, which must
         // not crowd the game's own channels out of the pre-filter.
+        // The NBA's own package names its feed after the game ("US| NBA 03: Spurs vs Pistons"):
+        // the direct game stream, ranked above the national broadcast.
+        val eventBase = if (event.competition == Competition.NBA) SportsMatching.NBA_PACKAGE else SportsMatching.EVENT_CHANNEL
         for ((channelId, name) in channelsNamed(SportsMatching.channelSearchTerms(event), sourceIds, MAX_EVENT_NAMED_CHANNELS)) {
             if (SportsMatching.channelScore(event, name) <= 0) continue
             val channel = channelDao.getById(channelId) ?: continue
             if (SportsMatching.channelScore(event, name, categoryOf(channel)) <= 0) continue
-            offer(channel, SportsMatching.EVENT_CHANNEL)
+            offer(channel, eventBase)
         }
 
         // 2. NBA.com: the national channel, then the favourite team's local one, the home team's,
@@ -122,13 +130,16 @@ class SportsChannelFinder(
         if (nbaListed != null) {
             val homeFavorite = SportsFavorites.isFavorite(favoriteTeams, event.competition, event.home)
             val awayFavorite = SportsFavorites.isFavorite(favoriteTeams, event.competition, event.away)
-            val ranked = nbaListed.national.map { it to 3 } +
-                nbaListed.home.map { it to if (homeFavorite) 2 else 1 } +
-                nbaListed.away.map { it to if (awayFavorite && !homeFavorite) 2 else 0 }
-            for ((station, rank) in ranked) {
-                for (channel in usChannelsOf(station, sourceIds)) {
+            // The national broadcaster is a network (NBC, ABC, ESPN): only its own national channels,
+            // not every channel that shares the name ("NBC Dateline"). A team's local station is a
+            // specific channel, taken as named.
+            val ranked = nbaListed.national.map { Triple(it, 3, true) } +
+                nbaListed.home.map { Triple(it, if (homeFavorite) 2 else 1, false) } +
+                nbaListed.away.map { Triple(it, if (awayFavorite && !homeFavorite) 2 else 0, false) }
+            for ((station, rank, national) in ranked) {
+                for (channel in usChannelsOf(station, sourceIds, favoriteIds, networkOnly = national, categoryOf = ::categoryOf)) {
                     if (SportsMatching.isEventSlot(channel.name)) continue
-                    offer(channel, SportsMatching.NBA_LISTED + rank * SportsMatching.NBA_RANK)
+                    offer(channel, SportsMatching.NBA_LISTED + rank * SportsMatching.NBA_RANK, network = national)
                 }
             }
         }
@@ -172,9 +183,13 @@ class SportsChannelFinder(
         }
 
         // 5. ESPN's network for the game (CBS, NBC, Peacock…) on its US channels. A "+" app
-        // (Paramount+, ESPN+) is no channel: its games only show as event channels.
+        // (Paramount+, ESPN+) is no channel: its games only show as event channels. Only the
+        // network's own national channels — its feed, or a channel in the provider's network
+        // category ("US| NBC NETWORK") — not a themed channel that shares the name ("NBC Dateline").
         for (network in event.broadcasts.map { it.trim() }.filter { it.isNotEmpty() && !it.endsWith("+") }.distinctBy { it.lowercase() }) {
-            for (channel in usChannelsOf(network, sourceIds)) offer(channel, SportsMatching.NETWORK, guess = true)
+            for (channel in usChannelsOf(network, sourceIds, favoriteIds, networkOnly = true, categoryOf = ::categoryOf)) {
+                offer(channel, SportsMatching.NETWORK, guess = true, network = true)
+            }
         }
 
         // 6. Last resort, only when nothing above found anything (for the US leagues, only when
@@ -197,7 +212,6 @@ class SportsChannelFinder(
         val unconfirmed = best.values.filter { it.programme == null }.map { it.channel }
         for (channelId in channelsShowingAnotherGame(event, unconfirmed)) best.remove(channelId)
 
-        val favoriteIds = favoriteChannels(sourceIds).mapTo(HashSet()) { it.id }
         best.values
             .map { found ->
                 val favorite = found.channel.id in favoriteIds
@@ -210,9 +224,10 @@ class SportsChannelFinder(
                     favorite = favorite,
                     base = found.base,
                     category = found.category,
+                    network = found.network,
                 )
             }
-            .sortedWith(compareByDescending<SportsChannelMatch> { it.score }.thenBy { it.channel.name.lowercase() })
+            .sortedWith(compareByDescending<SportsChannelMatch> { it.score }.thenByDescending { it.favorite }.thenBy { it.channel.name.lowercase() })
             .take(MAX_RESULTS)
             .let { SportsMatches(it, official) }
     }
@@ -230,23 +245,39 @@ class SportsChannelFinder(
 
     /**
      * The US channels of [station] (a network, a regional sports network, a station's call sign),
-     * the network's own feed first ("US| CBS HD" before "US| CBS 2 NEW YORK (WCBS)").
+     * the network's own feed first ("US| CBS HD" before "US| CBS 2 NEW YORK (WCBS)"). The user's
+     * [favoriteIds] among them always come, past the cap ("US| NBC 4 NEW YORK (WNBC)" among
+     * NBC's hundreds of affiliates), and so does a favourite named without a country ("NBC New York").
      */
-    private suspend fun usChannelsOf(station: String, sourceIds: List<Long>): List<ChannelEntity> {
+    private suspend fun usChannelsOf(
+        station: String,
+        sourceIds: List<Long>,
+        favoriteIds: Set<Long>,
+        networkOnly: Boolean = false,
+        categoryOf: suspend (ChannelEntity) -> String? = { null },
+    ): List<ChannelEntity> {
         val callSign = CALL_SIGN.matches(station)
         val terms = if (callSign) listOf(station) else SportsMatching.broadcasterSearchTerms(station)
         val key = SportsMatching.tvKey(station)
-        return channelsNamed(terms, sourceIds, MAX_EVENT_NAMED_CHANNELS)
-            .filter { (_, name) ->
-                SportsMatching.countryOf(name) == "US" && if (callSign) {
+        val named = channelsNamed(terms, sourceIds, MAX_EVENT_NAMED_CHANNELS)
+            .filter { (id, name) ->
+                val country = SportsMatching.countryOf(name)
+                (country == "US" || (country == null && id in favoriteIds)) && if (callSign) {
                     SportsMatching.containsTerm(SportsMatching.normalize(name), station)
                 } else {
                     SportsMatching.broadcasterMatches(name, station)
                 }
             }
+        val (favorites, others) = named.partition { (id, _) -> id in favoriteIds }
+        val favoriteChannels = favorites.mapNotNull { (id, _) -> channelDao.getById(id) }
+        // Only a network's own national channels, so "NBC" brings "US| NBC" and the "NBC NETWORK"
+        // affiliates, not "NBC Dateline". Favourites always come, past the filter and the cap.
+        val otherChannels = others
             .sortedWith(compareByDescending<Pair<Long, String>> { SportsMatching.tvKey(it.second) == key }.thenBy { it.second.length })
-            .take(NETWORK_CHANNELS)
             .mapNotNull { (id, _) -> channelDao.getById(id) }
+            .let { list -> if (networkOnly) list.filter { SportsMatching.isNetworkChannel(it.name, station, categoryOf(it)) } else list }
+            .take(NETWORK_CHANNELS)
+        return favoriteChannels + otherChannels
     }
 
     /** The active profile's favourite channels in [sourceIds]. */
